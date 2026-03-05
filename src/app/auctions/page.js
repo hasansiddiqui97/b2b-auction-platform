@@ -90,7 +90,9 @@ export default function AuctionListings() {
 
   // Filter and sort auctions
   useEffect(() => {
-    if (isLoading) return;
+    console.log('Filtering:', { auctions: auctions.length, isLoading });
+    
+    if (isLoading || !auctions.length) return;
     
     let result = [...auctions];
 
@@ -115,9 +117,15 @@ export default function AuctionListings() {
       result = result.filter(auction => auction.grade === selectedGrade);
     }
 
-    result = result.filter(auction => 
-      auction.currentBid >= priceRange[0] && auction.currentBid <= priceRange[1]
-    );
+    // Price filter
+    const minPrice = priceRange[0];
+    const maxPrice = priceRange[1];
+    if (minPrice > 0 || maxPrice < 500000) {
+      result = result.filter(auction => {
+        const price = auction.currentBid || 0;
+        return price >= minPrice && price <= maxPrice;
+      });
+    }
 
     switch (sortBy) {
       case 'ending-soon':
