@@ -42,63 +42,20 @@ export default function AuctionDetail({ params }) {
   const [myMaxBid, setMyMaxBid] = useState('');
   const [autoBidEnabled, setAutoBidEnabled] = useState(false);
 
-  // Load auction data
+  // Load auction data - use mock data for now
   useEffect(() => {
-    async function loadAuction() {
-      setLoading(true);
-      
-      // Try Supabase first
-      if (isSupabaseConfigured() && supabase) {
-        const { data, error } = await supabase
-          .from('auctions')
-          .select('*')
-          .eq('id', id)
-          .single();
-        
-        if (data) {
-          const transformed = {
-            id: data.id,
-            title: data.title,
-            description: data.description,
-            images: data.images || [],
-            seller: {
-              id: data.seller_id || 'sel-001',
-              name: 'Hayaland Electronics',
-              rating: 4.8,
-              verified: true,
-              location: data.location || 'Tokyo, Japan',
-            },
-            category: 'Smartphones',
-            brand: data.brand,
-            model: data.model,
-            grade: data.grade,
-            startingPrice: data.starting_price,
-            currentBid: data.current_bid,
-            buyNowPrice: data.buy_now_price,
-            bidCount: data.bid_count,
-            watchers: Math.floor(Math.random() * 200) + 50,
-            startTime: data.start_time,
-            endTime: data.end_time,
-            status: 'live',
-          };
-          setAuction(transformed);
-          setBidAmount(transformed.currentBid + 1000);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      // Fallback to mock data
-      const found = mockAuctions.find(a => a.id === id);
-      if (found) {
-        setAuction(found);
-        setIsWatched(currentUser.watchlist.includes(found.id));
-        setBidAmount(found.currentBid + 1000);
-      }
-      setLoading(false);
+    // Try to find in mock data first
+    const found = mockAuctions.find(a => a.id === id);
+    if (found) {
+      setAuction(found);
+      setIsWatched(currentUser.watchlist.includes(found.id));
+      setBidAmount(found.currentBid + 1000);
+    } else {
+      // If not found, try Supabase
+      // For now, just show error
+      setAuction(null);
     }
-    
-    loadAuction();
+    setLoading(false);
   }, [id]);
 
   // Countdown timer
