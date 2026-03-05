@@ -232,7 +232,7 @@ export default function AuctionDetail({ params }) {
               {/* Main Image */}
               <div className="relative aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 mb-4">
                 <img 
-                  src={auction.images[currentImageIndex]} 
+                  src={(auction.images || [])[currentImageIndex]} 
                   alt={auction.title}
                   className="w-full h-full object-cover"
                 />
@@ -248,7 +248,7 @@ export default function AuctionDetail({ params }) {
               </div>
 
               {/* Thumbnail Gallery */}
-              {auction.images.length > 1 && (
+              {(auction.images || []).length > 1 && (
                 <div className="flex space-x-2 overflow-x-auto pb-2">
                   {auction.images.map((img, idx) => (
                     <button
