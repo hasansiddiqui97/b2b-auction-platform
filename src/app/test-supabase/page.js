@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 export default function TestSupabase() {
   const [status, setStatus] = useState('Testing...');
@@ -13,8 +13,13 @@ export default function TestSupabase() {
   }, []);
 
   async function testConnection() {
+    if (!isSupabaseConfigured()) {
+      setError('Supabase not configured. Add environment variables in Vercel.');
+      setStatus('Not Configured');
+      return;
+    }
+
     try {
-      // Test fetching categories
       const { data: categories, error: catError } = await supabase
         .from('categories')
         .select('*');
@@ -25,7 +30,6 @@ export default function TestSupabase() {
         return;
       }
 
-      // Test fetching auctions
       const { data: auctions, error: aucError } = await supabase
         .from('auctions')
         .select('*')
@@ -57,7 +61,7 @@ export default function TestSupabase() {
             <span className="text-slate-600 dark:text-slate-300">Status:</span>
             <span className={`font-semibold ${
               status === 'Connected!' ? 'text-emerald-500' : 
-              status === 'Error' ? 'text-rose-500' : 'text-amber-500'
+              status === 'Error' || status === 'Not Configured' ? 'text-rose-500' : 'text-amber-500'
             }`}>
               {status}
             </span>
