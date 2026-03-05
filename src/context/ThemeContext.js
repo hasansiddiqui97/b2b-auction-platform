@@ -2,7 +2,11 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const ThemeContext = createContext(undefined);
+const ThemeContext = createContext({
+  theme: 'light',
+  toggleTheme: () => {},
+  mounted: false
+});
 
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState('light');
@@ -10,17 +14,23 @@ export function ThemeProvider({ children }) {
 
   useEffect(() => {
     setMounted(true);
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    setTheme(savedTheme);
-    if (savedTheme === 'dark') {
-      document.documentElement.classList.add('dark');
+    try {
+      const savedTheme = localStorage.getItem('theme') || 'light';
+      setTheme(savedTheme);
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {
+      console.log('LocalStorage not available');
     }
   }, []);
 
   const toggleTheme = () => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
     setTheme(newTheme);
-    localStorage.setItem('theme', newTheme);
+    try {
+      localStorage.setItem('theme', newTheme);
+    } catch (e) {}
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -28,7 +38,6 @@ export function ThemeProvider({ children }) {
     }
   };
 
-  // Always render context, even before mounted
   return (
     <ThemeContext.Provider value={{ theme, toggleTheme, mounted }}>
       {children}
@@ -37,9 +46,5 @@ export function ThemeProvider({ children }) {
 }
 
 export function useTheme() {
-  const context = useContext(ThemeContext);
-  if (context === undefined) {
-    return { theme: 'light', toggleTheme: () => {}, mounted: false };
-  }
-  return context;
+  return useContext(ThemeContext);
 }
