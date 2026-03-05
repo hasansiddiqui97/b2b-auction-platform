@@ -90,11 +90,14 @@ export default function AuctionListings() {
 
   // Filter and sort auctions
   useEffect(() => {
-    console.log('Filtering:', { auctions: auctions.length, isLoading });
-    
-    if (isLoading || !auctions.length) return;
+    if (isLoading) return;
     
     let result = [...auctions];
+    
+    if (result.length === 0) {
+      setFilteredAuctions([]);
+      return;
+    }
 
     if (searchQuery) {
       result = result.filter(auction => 
