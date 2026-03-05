@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --background-start-rgb: 255, 255, 255;
+  --background-end-rgb: 248, 250, 252;
+}
+
+.dark {
+  --foreground-rgb: 248, 250, 252;
+  --background-start-rgb: 15, 23, 42;
+  --background-end-rgb: 30, 41, 59;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-start-rgb));
+  min-height: 100vh;
+}
+
+/* Gradient Text */
+.gradient-text {
+  background: linear-gradient(135deg, #FF6B35 0%, #FFB347 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient Button */
+.btn-gradient {
+  background: linear-gradient(135deg, #FF6B35 0%, #FFB347 100%);
+  @apply text-white font-medium px-6 py-3 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl active:scale-95;
+}
+
+.btn-gradient:hover {
+  background: linear-gradient(135deg, #e55a2b 0%, #e5a040 100%);
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm;
+  }
+  
+  .btn-primary {
+    @apply px-4 py-2 bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-medium transition-all duration-200;
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-medium transition-all duration-200;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all;
+  }
+  
+  .badge {
+    @apply px-2 py-1 text-xs font-medium rounded-full;
+  }
+  
+  .badge-live {
+    @apply badge bg-rose-500 text-white animate-pulse;
+  }
+  
+  .badge-ended {
+    @apply badge bg-slate-400 text-white;
+  }
+  
+  .badge-winning {
+    @apply badge bg-emerald-500 text-white;
+  }
+  
+  .badge-outbid {
+    @apply badge bg-amber-500 text-white;
+  }
+}
