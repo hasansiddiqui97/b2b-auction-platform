@@ -8,19 +8,17 @@ import {
   List, 
   SlidersHorizontal,
   X,
-  ChevronDown,
-  RefreshCw,
-  Clock,
-  TrendingUp,
-  Sparkles,
+  Heart,
   Eye,
-  Heart
+  MapPin,
+  CheckCircle,
+  Star
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import AuctionCard from '@/components/AuctionCard';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { mockAuctions, categories, brands, grades, currentUser } from '@/data/mockData';
+import { mockAuctions, currentUser } from '@/data/mockData';
 
 export default function AuctionListings() {
   const [auctions, setAuctions] = useState([]);
@@ -28,39 +26,37 @@ export default function AuctionListings() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedBrand, setSelectedBrand] = useState('All');
-  const [selectedGrade, setSelectedGrade] = useState('All');
-  const [priceRange, setPriceRange] = useState([0, 500000]);
   const [sortBy, setSortBy] = useState('ending-soon');
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
   const [watchlist, setWatchlist] = useState(currentUser.watchlist);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch auctions from Supabase
+  // Fetch auctions with seller info from Supabase
   useEffect(() => {
     async function fetchAuctions() {
       if (isSupabaseConfigured() && supabase) {
-        const { data, error } = await supabase
+        const { data: auctionsData, error } = await supabase
           .from('auctions')
-          .select('*')
+          .select('*, profiles(full_name, company_name, is_verified, location)')
           .eq('status', 'active')
           .order('end_time', { ascending: true });
         
-        if (data && data.length > 0) {
-          // Transform Supabase data to match expected format
-          const transformed = data.map(a => ({
+        if (auctionsData && auctionsData.length > 0) {
+          const transformed = auctionsData.map(a => ({
             id: a.id,
             title: a.title,
             description: a.description,
             images: a.images || [],
             seller: {
-              id: a.seller_id || 'sel-001',
-              name: 'Hayaland Electronics',
+              id: a.seller_id,
+              name: a.profiles?.full_name || a.profiles?.company_name || 'Unknown Seller',
+              company: a.profiles?.company_name,
+              verified: a.profiles?.is_verified || false,
+              location: a.profiles?.location || 'Tokyo, Japan',
               rating: 4.8,
-              verified: true,
-              location: 'Tokyo, Japan',
             },
-            category: 'Smartphones',
+            category: a.category || 'Smartphones',
             brand: a.brand,
             model: a.model,
             grade: a.grade,
@@ -88,306 +84,133 @@ export default function AuctionListings() {
     fetchAuctions();
   }, []);
 
-  // Filter and sort auctions
+  // Simple filter
   useEffect(() => {
-    // Simply use all auctions - no filtering for now
-    setFilteredAuctions([...auctions]);
-    return;
-
+    if (isLoading || !auctions.length) return;
+    let result = [...auctions];
+    
     if (searchQuery) {
-      result = result.filter(auction => 
-        auction.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        auction.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        auction.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        auction.model?.toLowerCase().includes(searchQuery.toLowerCase())
+      result = result.filter(a => 
+        a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        a.brand?.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
-
     if (selectedCategory !== 'All') {
-      result = result.filter(auction => auction.category === selectedCategory);
+      result = result.filter(a => a.category === selectedCategory);
     }
-
     if (selectedBrand !== 'All Brands') {
-      result = result.filter(auction => auction.brand === selectedBrand);
+      result = result.filter(a => a.brand === selectedBrand);
     }
-
-    if (selectedGrade !== 'All') {
-      result = result.filter(auction => auction.grade === selectedGrade);
-    }
-
-    // Price filter
-    const minPrice = priceRange[0];
-    const maxPrice = priceRange[1];
-    if (minPrice > 0 || maxPrice < 500000) {
-      result = result.filter(auction => {
-        const price = auction.currentBid || 0;
-        return price >= minPrice && price <= maxPrice;
-      });
-    }
-
-    switch (sortBy) {
-      case 'ending-soon':
-        result.sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
-        break;
-      case 'price-low':
-        result.sort((a, b) => a.currentBid - b.currentBid);
-        break;
-      case 'price-high':
-        result.sort((a, b) => b.currentBid - a.currentBid);
-        break;
-      case 'most-bids':
-        result.sort((a, b) => b.bidCount - a.bidCount);
-        break;
-      case 'newest':
-        result.sort((a, b) => new Date(b.startTime) - new Date(a.startTime));
-        break;
-    }
-
+    
+    result.sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
     setFilteredAuctions(result);
-  }, [auctions, searchQuery, selectedCategory, selectedBrand, selectedGrade, priceRange, sortBy, isLoading]);
-
-  const toggleWatch = (auctionId) => {
-    if (watchlist.includes(auctionId)) {
-      setWatchlist(watchlist.filter(id => id !== auctionId));
-    } else {
-      setWatchlist([...watchlist, auctionId]);
-    }
-  };
-
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('All');
-    setSelectedBrand('All');
-    setSelectedGrade('All');
-    setPriceRange([0, 500000]);
-    setSortBy('ending-soon');
-  };
+  }, [auctions, searchQuery, selectedCategory, selectedBrand, isLoading]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-primary-600 to-primary-800 dark:from-slate-900 dark:to-slate-800 pt-8 pb-12">
+      {/* Hero */}
+      <div className="bg-gradient-to-r from-primary-600 to-primary-800 pt-8 pb-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h1 className="text-2xl sm:text-4xl font-bold text-white mb-2">Hayaland Wholesale</h1>
           <p className="text-emerald-100 mb-6">Premium Japanese electronics from verified sellers</p>
-          
-          {/* Search Bar */}
           <div className="relative max-w-2xl">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by brand, model, category..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 rounded-xl bg-white dark:bg-slate-800 border-0 text-slate-800 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-white/30 shadow-lg"
-            />
+            <input type="text" placeholder="Search by brand, model, category..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full pl-12 pr-4 py-4 rounded-xl bg-white text-slate-800" />
           </div>
-
-          {/* Stats */}
-          <div className="flex flex-wrap gap-4 mt-6">
-            <div className="flex items-center space-x-2 text-white/90">
-              <Sparkles className="w-5 h-5" />
-              <span>{auctions.length} Live Auctions</span>
-            </div>
-            <div className="flex items-center space-x-2 text-white/90">
-              <TrendingUp className="w-5 h-5" />
-              <span>🗼 Tokyo Based Sellers</span>
-            </div>
-            <div className="flex items-center space-x-2 text-white/90">
-              <Clock className="w-5 h-5" />
-              <span>🔒 Escrow Protected</span>
-            </div>
+          <div className="flex flex-wrap gap-4 mt-6 text-white/90">
+            <span>📦 {auctions.length} Live Auctions</span>
+            <span>🏪 Verified Sellers</span>
+            <span>🔒 Escrow Protected</span>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Filters Sidebar - Desktop */}
-          <aside className="hidden lg:block w-64 flex-shrink-0">
+          {/* Sidebar */}
+          <aside className="hidden lg:block w-64">
             <div className="glass-card p-6 sticky top-24">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-slate-800 dark:text-white">Filters</h3>
-                <button onClick={clearFilters} className="text-sm text-primary-500 hover:text-primary-600">
-                  Clear all
-                </button>
+                <h3 className="font-semibold text-slate-800">Filters</h3>
+                <button onClick={() => {setSearchQuery(''); setSelectedCategory('All'); setSelectedBrand('All');}} className="text-sm text-primary-500">Clear</button>
               </div>
-
-              {/* Category */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Category</label>
-                <select 
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full input-field"
-                >
-                  {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
-                  ))}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Category</label>
+                <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} className="input-field">
+                  <option value="All">All Categories</option>
+                  <option value="Smartphones">Smartphones</option>
+                  <option value="Laptops">Laptops</option>
+                  <option value="Tablets">Tablets</option>
+                  <option value="Audio">Audio</option>
+                  <option value="Cameras">Cameras</option>
+                  <option value="Gaming">Gaming</option>
                 </select>
               </div>
-
-              {/* Brand */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Brand</label>
-                <select 
-                  value={selectedBrand}
-                  onChange={(e) => setSelectedBrand(e.target.value)}
-                  className="w-full input-field"
-                >
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Brand</label>
+                <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="input-field">
                   <option value="All Brands">All Brands</option>
-                  {brands.map(brand => (
-                    <option key={brand} value={brand}>{brand}</option>
-                  ))}
+                  <option value="Apple">Apple</option>
+                  <option value="Sony">Sony</option>
+                  <option value="Nintendo">Nintendo</option>
+                  <option value="Canon">Canon</option>
                 </select>
-              </div>
-
-              {/* Grade */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Condition Grade</label>
-                <div className="space-y-2">
-                  {grades.map(grade => (
-                    <label key={grade} className="flex items-center space-x-2 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="grade"
-                        value={grade}
-                        checked={selectedGrade === grade}
-                        onChange={(e) => setSelectedGrade(e.target.value)}
-                        className="text-primary-500"
-                      />
-                      <span className="text-sm text-slate-600 dark:text-slate-300">{grade}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Price Range */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Price Range (¥)</label>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="number"
-                    value={priceRange[0]}
-                    onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
-                    className="input-field"
-                    placeholder="Min"
-                  />
-                  <span className="text-slate-400">-</span>
-                  <input
-                    type="number"
-                    value={priceRange[1]}
-                    onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                    className="input-field"
-                    placeholder="Max"
-                  />
-                </div>
               </div>
             </div>
           </aside>
 
-          {/* Main Content */}
+          {/* Main */}
           <div className="flex-1">
-            {/* Toolbar */}
             <div className="glass-card p-4 mb-6">
               <div className="flex items-center justify-between">
-                <p className="text-slate-600 dark:text-slate-300">
-                  {filteredAuctions.length} auctions found
-                </p>
-                
-                <div className="flex items-center space-x-3">
-                  {/* Sort */}
-                  <select 
-                    value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value)}
-                    className="input-field"
-                  >
-                    <option value="ending-soon">Ending Soon</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="most-bids">Most Bids</option>
-                    <option value="newest">Newest First</option>
-                  </select>
-
-                  {/* View Mode */}
-                  <div className="flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg p-1">
-                    <button
-                      onClick={() => setViewMode('grid')}
-                      className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`}
-                    >
-                      <Grid3X3 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setViewMode('list')}
-                      className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-white dark:bg-slate-700 shadow-sm' : ''}`}
-                    >
-                      <List className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  {/* Mobile Filter Toggle */}
-                  <button 
-                    onClick={() => setShowFilters(!showFilters)}
-                    className="lg:hidden p-2 rounded-lg bg-slate-100 dark:bg-slate-800"
-                  >
-                    <SlidersHorizontal className="w-5 h-5" />
-                  </button>
-                </div>
+                <p className="text-slate-600">{filteredAuctions.length} auctions</p>
+                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="input-field">
+                  <option value="ending-soon">Ending Soon</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="most-bids">Most Bids</option>
+                </select>
               </div>
             </div>
 
-            {/* Mobile Filters */}
-            {showFilters && (
-              <div className="lg:hidden glass-card p-4 mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-slate-800 dark:text-white">Filters</h3>
-                  <button onClick={() => setShowFilters(false)}>
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-                {/* Same filter controls - simplified for mobile */}
-                <button onClick={clearFilters} className="btn-primary w-full">
-                  Clear All Filters
-                </button>
-              </div>
-            )}
-
-            {/* Auction Grid */}
             {isLoading ? (
-              <div className="text-center py-12">
-                <RefreshCw className="w-8 h-8 text-primary-500 animate-spin mx-auto" />
-                <p className="mt-4 text-slate-500">Loading auctions...</p>
-              </div>
+              <div className="text-center py-12">Loading...</div>
             ) : filteredAuctions.length === 0 ? (
-              <div className="text-center py-12 glass-card">
-                <div className="text-4xl mb-4">🔍</div>
-                <h3 className="text-lg font-semibold text-slate-800 dark:text-white mb-2">No auctions found</h3>
-                <p className="text-slate-500 mb-4">Try adjusting your filters or search query</p>
-                <button onClick={clearFilters} className="btn-primary">
-                  Clear All Filters
-                </button>
-              </div>
-            ) : viewMode === 'grid' ? (
+              <div className="glass-card p-12 text-center">No auctions found</div>
+            ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredAuctions.map(auction => (
-                  <AuctionCard 
-                    key={auction.id} 
-                    auction={auction}
-                    isWatched={watchlist.includes(auction.id)}
-                    onToggleWatch={() => toggleWatch(auction.id)}
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {filteredAuctions.map(auction => (
-                  <AuctionCard 
-                    key={auction.id} 
-                    auction={auction}
-                    isWatched={watchlist.includes(auction.id)}
-                    onToggleWatch={() => toggleWatch(auction.id)}
-                    variant="list"
-                  />
+                  <Link key={auction.id} href={`/auction/${auction.id}`}>
+                    <div className="glass-card p-4 hover:shadow-lg transition-shadow">
+                      <div className="relative aspect-square rounded-xl overflow-hidden mb-4 bg-slate-100">
+                        {auction.images?.[0] ? (
+                          <Image src={auction.images[0]} alt={auction.title} fill className="object-cover" />
+                        ) : (
+                          <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
+                        )}
+                        <span className="absolute top-2 left-2 px-2 py-1 bg-black/50 text-white text-xs rounded-full">
+                          {auction.grade}
+                        </span>
+                      </div>
+                      <h3 className="font-medium text-slate-800 line-clamp-2 mb-1">{auction.title}</h3>
+                      
+                      {/* Listed by */}
+                      <div className="flex items-center space-x-1 mb-2">
+                        <span className="text-xs text-slate-500">Listed by</span>
+                        <span className="text-xs font-medium text-primary-600">{auction.seller?.name}</span>
+                        {auction.seller?.verified && (
+                          <CheckCircle className="w-3 h-3 text-emerald-500" />
+                        )}
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-lg font-bold text-primary-600">¥{auction.currentBid?.toLocaleString()}</p>
+                          <p className="text-xs text-slate-500">{auction.bidCount} bids</p>
+                        </div>
+                        <span className="text-xs text-slate-400">{auction.seller?.location}</span>
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </div>
             )}
