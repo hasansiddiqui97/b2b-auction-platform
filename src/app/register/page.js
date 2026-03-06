@@ -17,6 +17,21 @@ import {
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
+const countryCodes = [
+  { code: '+81', country: 'Japan' },
+  { code: '+1', country: 'USA/Canada' },
+  { code: '+44', country: 'UK' },
+  { code: '+49', country: 'Germany' },
+  { code: '+33', country: 'France' },
+  { code: '+82', country: 'South Korea' },
+  { code: '+86', country: 'China' },
+  { code: '+886', country: 'Taiwan' },
+  { code: '+61', country: 'Australia' },
+  { code: '+64', country: 'New Zealand' },
+  { code: '+852', country: 'Hong Kong' },
+  { code: '+65', country: 'Singapore' },
+];
+
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(1); // 1: Details, 2: Email Verify, 3: Phone Verify, 4: Complete
@@ -33,6 +48,7 @@ export default function RegisterPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
+  const [countryCode, setCountryCode] = useState('+81'); // Japan default
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -77,7 +93,7 @@ export default function RegisterPage() {
           .insert([{
             email: formData.email,
             full_name: `${formData.firstName} ${formData.lastName}`,
-            phone: formData.phone,
+            phone: `${countryCode} ${formData.phone}`,
             dob: formData.dob,
             role: 'buyer',
             email_verified: true,
@@ -186,9 +202,28 @@ export default function RegisterPage() {
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number *</label>
-                  <div className="relative">
-                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="input-field pl-10" placeholder="+81 90-1234-5678" />
+                  <div className="flex">
+                    <select 
+                      value={countryCode} 
+                      onChange={(e) => setCountryCode(e.target.value)}
+                      className="input-field w-28 rounded-r-none border-r-0"
+                    >
+                      {countryCodes.map(cc => (
+                        <option key={cc.code} value={cc.code}>{cc.code}</option>
+                      ))}
+                    </select>
+                    <div className="relative flex-1">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input 
+                        type="tel" 
+                        name="phone" 
+                        value={formData.phone} 
+                        onChange={handleChange} 
+                        required 
+                        className="input-field pl-10 rounded-l-none" 
+                        placeholder="90-1234-5678" 
+                      />
+                    </div>
                   </div>
                 </div>
 
