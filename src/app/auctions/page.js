@@ -84,27 +84,12 @@ export default function AuctionListings() {
     fetchAuctions();
   }, []);
 
-  // Simple filter
+  // Simple filter - just show all auctions
   useEffect(() => {
-    if (isLoading || !auctions.length) return;
-    let result = [...auctions];
-    
-    if (searchQuery) {
-      result = result.filter(a => 
-        a.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        a.brand?.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+    if (!isLoading && auctions.length > 0) {
+      setFilteredAuctions(auctions);
     }
-    if (selectedCategory !== 'All') {
-      result = result.filter(a => a.category === selectedCategory);
-    }
-    if (selectedBrand !== 'All Brands') {
-      result = result.filter(a => a.brand === selectedBrand);
-    }
-    
-    result.sort((a, b) => new Date(a.endTime) - new Date(b.endTime));
-    setFilteredAuctions(result);
-  }, [auctions, searchQuery, selectedCategory, selectedBrand, isLoading]);
+  }, [auctions, isLoading]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
