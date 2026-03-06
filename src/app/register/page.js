@@ -2,287 +2,274 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight, CheckCircle, AlertCircle } from 'lucide-react';
+import Image from 'next/image';
+import { 
+  Mail, 
+  Lock, 
+  User, 
+  Phone, 
+  Calendar, 
+  CheckCircle, 
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Shield
+} from 'lucide-react';
 
-export default function Register() {
-  const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1);
-  const [form, setForm] = useState({
-    name: '',
+export default function RegisterPage() {
+  const [step, setStep] = useState(1); // 1: Details, 2: Email Verify, 3: Phone Verify, 4: Complete
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    dob: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    agreeTerms: false
+    phone: '',
+    role: 'buyer'
   });
-  const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
 
-  const validateForm = () => {
-    const newErrors = {};
-    
-    if (!form.name.trim()) newErrors.name = 'Name is required';
-    
-    if (!form.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-      newErrors.email = 'Please enter a valid email';
-    }
-    
-    if (!form.password) {
-      newErrors.password = 'Password is required';
-    } else if (form.password.length < 8) {
-      newErrors.password = 'Password must be at least 8 characters';
-    }
-    
-    if (form.password !== form.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-    }
-    
-    if (!form.agreeTerms) {
-      newErrors.agreeTerms = 'You must agree to the terms';
-    }
-    
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmitStep1 = (e) => {
     e.preventDefault();
-    
-    if (step === 1) {
-      if (validateForm()) {
-        setStep(2);
-      }
+    // Validate
+    if (!formData.firstName || !formData.lastName || !formData.dob || !formData.email || !formData.password || !formData.phone) {
+      alert('Please fill in all fields');
       return;
     }
-    
-    setLoading(true);
-    setTimeout(() => {
-      router.push('/buyer');
-    }, 2000);
+    setStep(2);
+  };
+
+  const handleEmailVerify = () => {
+    // Simulate email verification code
+    if (verificationCode.length === 6) {
+      setEmailVerified(true);
+      if (phoneVerified) {
+        setStep(4);
+      } else {
+        setStep(3);
+      }
+    }
+  };
+
+  const handlePhoneVerify = () => {
+    // Simulate phone verification code
+    if (verificationCode.length === 6) {
+      setPhoneVerified(true);
+      setStep(4);
+    }
+  };
+
+  const handleFinalSubmit = () => {
+    // Save to database (would go to Supabase in real app)
+    console.log('Registration complete:', formData);
+    alert('Account created successfully!');
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left Panel - Stats */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-orange-500 to-yellow-400 p-12 flex-col justify-between relative overflow-hidden">
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-32 h-32 bg-white rounded-full"></div>
-          <div className="absolute bottom-20 right-20 w-48 h-48 bg-white rounded-full"></div>
-          <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-white rounded-full"></div>
-        </div>
-        
-        <div className="relative z-10">
-          <img src="/hayaland-logo.jpg" alt="Hayaland" className="h-16" />
-        </div>
-
-        <div className="relative z-10">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Join the Largest B2B Auction Platform
-          </h1>
-          <p className="text-white/90 text-lg mb-8">
-            Connect with verified Japanese sellers and global buyers
-          </p>
-          
-          <div className="grid grid-cols-3 gap-6">
-            <div className="bg-white/20 backdrop-blur rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-white">500+</div>
-              <div className="text-white/80 text-sm">Auctions</div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center space-x-2">
+            <div className="relative w-10 h-10 bg-primary-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-xl">H</span>
             </div>
-            <div className="bg-white/20 backdrop-blur rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-white">120+</div>
-              <div className="text-white/80 text-sm">Sellers</div>
-            </div>
-            <div className="bg-white/20 backdrop-blur rounded-xl p-4 text-center">
-              <div className="text-3xl font-bold text-white">5000+</div>
-              <div className="text-white/80 text-sm">Buyers</div>
-            </div>
-          </div>
+            <span className="text-2xl font-bold text-white">Hayaland</span>
+          </Link>
         </div>
 
-        <div className="relative z-10 text-white/70 text-sm">
-          Trusted by 5000+ buyers worldwide
-        </div>
-      </div>
-
-      {/* Right Panel - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-white">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden text-center mb-8">
-            <img src="/hayaland-logo.jpg" alt="Hayaland" className="h-16 mx-auto mb-4" />
-          </div>
-
+        <div className="glass-card p-8">
           {/* Progress Steps */}
           <div className="flex items-center justify-center mb-8">
-            <div className={`flex items-center ${step >= 1 ? 'text-orange-500' : 'text-slate-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step >= 1 ? 'bg-orange-500 text-white' : 'bg-slate-200'
-              }`}>
-                {step > 1 ? <CheckCircle className="w-5 h-5" /> : '1'}
+            {[1, 2, 3].map((s) => (
+              <div key={s} className="flex items-center">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                  step >= s ? 'bg-primary-500 text-white' : 'bg-slate-700 text-slate-400'
+                }`}>
+                  {step > s ? <CheckCircle className="w-5 h-5" /> : s}
+                </div>
+                {s < 3 && <div className={`w-12 h-0.5 ${step > s ? 'bg-primary-500' : 'bg-slate-700'}`}></div>}
               </div>
-              <span className="ml-2 text-sm font-medium">Account</span>
-            </div>
-            <div className="w-12 h-0.5 bg-slate-200 mx-4"></div>
-            <div className={`flex items-center ${step >= 2 ? 'text-orange-500' : 'text-slate-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
-                step >= 2 ? 'bg-orange-500 text-white' : 'bg-slate-200'
-              }`}>
-                2
-              </div>
-              <span className="ml-2 text-sm font-medium">Verify</span>
-            </div>
+            ))}
           </div>
 
-          <h1 className="text-2xl font-bold text-slate-800 text-center mb-2">
-            {step === 1 ? 'Create Account' : 'Verify Your Email'}
-          </h1>
-          <p className="text-slate-500 text-center mb-8">
-            {step === 1 ? 'Join as a buyer on Hayaland Wholesale' : 'We sent a verification link to your email'}
-          </p>
-
+          {/* Step 1: Basic Details */}
           {step === 1 && (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({...form, name: e.target.value})}
-                  className={`input-field ${errors.name ? 'border-orange-500' : ''}`}
-                  placeholder="John Doe"
-                />
-                {errors.name && <p className="text-orange-500 text-xs mt-1">{errors.name}</p>}
-              </div>
+            <>
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-2">Create Account</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-center mb-6">Join Hayaland Wholesale</p>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-                <input
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({...form, email: e.target.value})}
-                  className={`input-field ${errors.email ? 'border-orange-500' : ''}`}
-                  placeholder="you@example.com"
-                />
-                {errors.email && <p className="text-orange-500 text-xs mt-1">{errors.email}</p>}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={form.password}
-                    onChange={(e) => setForm({...form, password: e.target.value})}
-                    className={`input-field pr-10 ${errors.password ? 'border-orange-500' : ''}`}
-                    placeholder="••••••••"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5 text-slate-400" /> : <Eye className="w-5 h-5 text-slate-400" />}
-                  </button>
+              <form onSubmit={handleSubmitStep1} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name *</label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input type="text" name="firstName" value={formData.firstName} onChange={handleChange} required className="input-field pl-10" placeholder="John" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Last Name *</label>
+                    <input type="text" name="lastName" value={formData.lastName} onChange={handleChange} required className="input-field" placeholder="Smith" />
+                  </div>
                 </div>
-                {errors.password && <p className="text-orange-500 text-xs mt-1">{errors.password}</p>}
-              </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={form.confirmPassword}
-                  onChange={(e) => setForm({...form, confirmPassword: e.target.value})}
-                  className={`input-field ${errors.confirmPassword ? 'border-orange-500' : ''}`}
-                  placeholder="••••••••"
-                />
-                {errors.confirmPassword && <p className="text-orange-500 text-xs mt-1">{errors.confirmPassword}</p>}
-              </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Date of Birth * <span className="text-xs text-slate-400">(Cannot be changed)</span></label>
+                  <div className="relative">
+                    <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="date" name="dob" value={formData.dob} onChange={handleChange} required className="input-field pl-10" />
+                  </div>
+                </div>
 
-              <div className="flex items-start">
-                <input
-                  type="checkbox"
-                  checked={form.agreeTerms}
-                  onChange={(e) => setForm({...form, agreeTerms: e.target.checked})}
-                  className="w-4 h-4 mt-1 rounded text-orange-500"
-                />
-                <span className="ml-2 text-sm text-slate-600">
-                  I agree to the{' '}
-                  <Link href="#" className="text-orange-500 hover:underline">Terms</Link>
-                  {' '}and{' '}
-                  <Link href="#" className="text-orange-500 hover:underline">Privacy Policy</Link>
-                </span>
-              </div>
-              {errors.agreeTerms && <p className="text-orange-500 text-xs">{errors.agreeTerms}</p>}
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address *</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} required className="input-field pl-10" placeholder="john@example.com" />
+                  </div>
+                </div>
 
-              <button
-                type="submit"
-                className="w-full flex items-center justify-center space-x-2 py-3 rounded-lg text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #FF6B35 0%, #FFB347 100%)' }}
-              >
-                <span>Continue</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </form>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Password *</label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      name="password" 
+                      value={formData.password} 
+                      onChange={handleChange} 
+                      required 
+                      className="input-field pl-10 pr-10" 
+                      placeholder="••••••••" 
+                    />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2">
+                      {showPassword ? <EyeOff className="w-4 h-4 text-slate-400" /> : <Eye className="w-4 h-4 text-slate-400" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number *</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="input-field pl-10" placeholder="+81 90-1234-5678" />
+                  </div>
+                </div>
+
+                <button type="submit" className="btn-primary w-full flex items-center justify-center space-x-2">
+                  <span>Continue</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </form>
+            </>
           )}
 
+          {/* Step 2: Email Verification */}
           {step === 2 && (
-            <div className="text-center">
-              <div className="w-20 h-20 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Mail className="w-10 h-10 text-orange-500" />
+            <>
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-2">Verify Email</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-center mb-6">We sent a code to {formData.email}</p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Enter 6-digit code</label>
+                  <input 
+                    type="text" 
+                    value={verificationCode} 
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                    className="input-field text-center text-2xl tracking-widest" 
+                    placeholder="000000"
+                    maxLength={6}
+                  />
+                </div>
+
+                <button onClick={handleEmailVerify} className="btn-primary w-full" disabled={verificationCode.length !== 6}>
+                  Verify Email
+                </button>
+
+                <p className="text-center text-sm text-slate-500">
+                  Didn't receive? <button className="text-primary-500">Resend Code</button>
+                </p>
+              </div>
+            </>
+          )}
+
+          {/* Step 3: Phone Verification */}
+          {step === 3 && (
+            <>
+              <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-2">Verify Phone</h1>
+              <p className="text-slate-500 dark:text-slate-400 text-center mb-6">We sent a code to {formData.phone}</p>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Enter 6-digit code</label>
+                  <input 
+                    type="text" 
+                    value={verificationCode} 
+                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))} 
+                    className="input-field text-center text-2xl tracking-widest" 
+                    placeholder="000000"
+                    maxLength={6}
+                  />
+                </div>
+
+                <button onClick={handlePhoneVerify} className="btn-primary w-full" disabled={verificationCode.length !== 6}>
+                  Verify Phone
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* Step 4: Complete */}
+          {step === 4 && (
+            <>
+              <div className="text-center mb-6">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <CheckCircle className="w-8 h-8 text-emerald-500" />
+                </div>
+                <h1 className="text-2xl font-bold text-slate-800 dark:text-white">Account Created!</h1>
+                <p className="text-slate-500 mt-2">Welcome to Hayaland Wholesale, {formData.firstName}!</p>
               </div>
 
-              <p className="text-slate-600 mb-6">
-                We've sent a verification link to<br/>
-                <span className="font-medium text-slate-800">{form.email}</span>
-              </p>
-
-              <div className="p-4 bg-blue-50 rounded-lg mb-6">
-                <div className="flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-                  <p className="text-sm text-blue-700 text-left">
-                    <strong>Demo:</strong> Click below to skip verification.
-                  </p>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 mb-6">
+                <div className="flex items-center space-x-2 text-sm mb-2">
+                  <Mail className="w-4 h-4 text-emerald-500" />
+                  <span className="text-slate-600 dark:text-slate-300">{formData.email}</span>
+                  <CheckCircle className="w-3 h-3 text-emerald-500" />
+                </div>
+                <div className="flex items-center space-x-2 text-sm">
+                  <Phone className="w-4 h-4 text-emerald-500" />
+                  <span className="text-slate-600 dark:text-slate-300">{formData.phone}</span>
+                  <CheckCircle className="w-3 h-3 text-emerald-500" />
                 </div>
               </div>
 
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="w-full flex items-center justify-center space-x-2 py-3 rounded-lg text-white font-medium transition-all duration-200 shadow-md hover:shadow-lg"
-                style={{ background: 'linear-gradient(135deg, #FF6B35 0%, #FFB347 100%)' }}
-              >
-                {loading ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                ) : (
-                  <>
-                    <span>Continue to Dashboard</span>
-                    <ArrowRight className="w-4 h-4" />
-                  </>
-                )}
-              </button>
+              <div className="flex items-center justify-center space-x-2 text-sm text-slate-500 mb-4">
+                <Shield className="w-4 h-4" />
+                <span>Your data is secure with us</span>
+              </div>
 
-              <button
-                onClick={() => setStep(1)}
-                className="mt-4 text-sm text-slate-500 hover:text-slate-700"
-              >
-                ← Back to edit details
-              </button>
-            </div>
+              <Link href="/auctions" className="btn-primary w-full text-center block">
+                Start Shopping
+              </Link>
+            </>
           )}
 
-          <div className="mt-8 text-center">
-            <p className="text-slate-600">
-              Already have an account?{' '}
-              <Link href="/login" className="text-orange-500 hover:text-orange-600 font-medium">
-                Sign in
-              </Link>
+          {/* Footer */}
+          {step < 4 && (
+            <p className="text-center text-sm text-slate-500 mt-6">
+              Already have an account? <Link href="/login" className="text-primary-500 hover:underline">Sign in</Link>
             </p>
-          </div>
+          )}
         </div>
       </div>
     </div>
