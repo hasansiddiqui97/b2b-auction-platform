@@ -13,6 +13,19 @@ import {
   Bell, 
   Wallet, 
   Search,
+  User,
+  ShoppingCart,
+  Shield,
+  ChevronDown
+} from 'lucide-react';
+import { 
+  Sun, 
+  Moon, 
+  Menu, 
+  X, 
+  Bell, 
+  Wallet, 
+  Search,
   Globe,
   User,
   ShoppingCart,
