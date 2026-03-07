@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { 
   Package,
@@ -23,22 +23,70 @@ import {
   Tag,
   Image as ImageIcon
 } from 'lucide-react';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+
+// Current user ID (in production, this would come from auth)
+// For demo: Hasan's user ID
+const CURRENT_USER_ID = '550e8400-e29b-41d4-a716-772795820771';
 
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [inventory, setInventory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock inventory data
-  const inventory = [
-    { id: 'inv-001', title: 'iPhone 15 Pro Max 256GB Natural Titanium', sku: 'IP15PM-256-NT', category: 'Smartphones', grade: 'A', quantity: 5, price: 95000, status: 'active', image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200' },
-    { id: 'inv-002', title: 'iPhone 15 Pro 128GB Space Black', sku: 'IP15P-128-SB', category: 'Smartphones', grade: 'A+', quantity: 3, price: 85000, status: 'active', image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200' },
-    { id: 'inv-003', title: 'MacBook Pro 14" M3 Pro 512GB', sku: 'MBP14-M3-512', category: 'Laptops', grade: 'New', quantity: 2, price: 280000, status: 'active', image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200' },
-    { id: 'inv-004', title: 'iPad Pro 12.9" M2 256GB', sku: 'IPP12-M2-256', category: 'Tablets', grade: 'A', quantity: 8, price: 105000, status: 'draft', image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200' },
-    { id: 'inv-005', title: 'Sony WH-1000XM5 Headphones', sku: 'WH1000XM5-BK', category: 'Audio', grade: 'B', quantity: 12, price: 18500, status: 'active', image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=200' },
-    { id: 'inv-006', title: 'Canon EOS R6 Mark II Body', sku: 'EOSR6MK2-BO', category: 'Cameras', grade: 'A', quantity: 1, price: 195000, status: 'active', image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=200' },
-  ];
+  // Fetch user's auctions from Supabase
+  useEffect(() => {
+    async function fetchInventory() {
+      if (!isSupabaseConfigured() || !supabase) {
+        setError('Supabase not configured');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error: fetchError } = await supabase
+          .from('auctions')
+          .select('*')
+          .eq('seller_id', CURRENT_USER_ID)
+          .order('created_at', { ascending: false });
+
+        if (fetchError) {
+          console.error('Fetch error:', fetchError);
+          setError(fetchError.message);
+        } else if (data) {
+          // Transform data to match inventory format
+          const transformed = data.map(item => ({
+            id: item.id,
+            title: item.title,
+            sku: item.sku || `SKU-${item.id.slice(0, 8).toUpperCase()}`,
+            category: item.category || 'Uncategorized',
+            grade: item.grade || 'A',
+            quantity: item.quantity || 1,
+            price: item.current_bid || item.starting_price || 0,
+            status: item.status || 'active',
+            image: item.images?.[0] || null,
+            created_at: item.created_at,
+            start_time: item.start_time,
+            end_time: item.end_time,
+            bid_count: item.bid_count || 0,
+            current_bid: item.current_bid,
+            starting_price: item.starting_price,
+          }));
+          setInventory(transformed);
+        }
+      } catch (err) {
+        console.error('Error:', err);
+        setError(err.message);
+      }
+      setLoading(false);
+    }
+
+    fetchInventory();
+  }, []);
 
   const categories = ['All', 'Smartphones', 'Laptops', 'Tablets', 'Audio', 'Cameras', 'Wearables', 'Gaming'];
   const grades = ['New', 'A+', 'A', 'B', 'C'];
