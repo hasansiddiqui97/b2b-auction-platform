@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, Gavel, Heart, Share2, Shield, MapPin, CheckCircle, ChevronLeft } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 function LoadingState() {
   return (
@@ -226,6 +226,12 @@ export default function AuctionDetail({ params }) {
   // Load auction from Supabase
   useEffect(() => {
     async function fetchAuction() {
+      if (!isSupabaseConfigured() || !supabase) {
+        console.error('Supabase not configured');
+        setLoading(false);
+        return;
+      }
+      
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
