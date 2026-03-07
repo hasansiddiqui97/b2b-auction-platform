@@ -91,7 +91,7 @@ export default function BuyerDashboard() {
 
   const tabs = [
     { id: 'bids', name: 'My Bids', icon: Gavel, count: bids.length },
-    { id: 'orders', name: 'Orders', icon: Package, count: orders.length },
+    { id: 'purchases', name: 'Purchases', icon: Package, href: '/purchase/orders', count: orders.length },
     { id: 'watchlist', name: 'Watchlist', icon: Heart, count: watchlist.length },
   ];
 
@@ -217,6 +217,32 @@ export default function BuyerDashboard() {
           <div className="flex space-x-1 bg-slate-200 dark:bg-slate-800 p-1 rounded-xl mb-6 w-fit min-w-full">
             {tabs.map((tab) => {
               const Icon = tab.icon;
+              const content = (
+                <>
+                  <Icon className="w-4 h-4" />
+                  <span className="font-medium text-sm sm:text-base">{tab.name}</span>
+                  <span className="px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
+                    {tab.count}
+                  </span>
+                </>
+              );
+              
+              if (tab.href) {
+                return (
+                  <Link
+                    key={tab.id}
+                    href={tab.href}
+                    className={`flex items-center space-x-2 px-3 sm:px-4 py-2 rounded-lg transition-colors whitespace-nowrap ${
+                      activeTab === tab.id
+                        ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
+                    }`}
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+              
               return (
                 <button
                   key={tab.id}
@@ -227,11 +253,7 @@ export default function BuyerDashboard() {
                       : 'text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                   }`}
                 >
-                  <Icon className="w-4 h-4" />
-                  <span className="font-medium text-sm sm:text-base">{tab.name}</span>
-                  <span className="px-2 py-0.5 text-xs bg-slate-200 dark:bg-slate-600 rounded-full">
-                    {tab.count}
-                  </span>
+                  {content}
                 </button>
               );
             })}
@@ -283,38 +305,13 @@ export default function BuyerDashboard() {
           </div>
         )}
 
-        {activeTab === 'orders' && (
-          <div className="space-y-4">
-            {orders.map((order) => (
-              <div key={order.id} className="glass-card p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-2">
-                    <Package className="w-5 h-5 text-primary-500" />
-                    <span className="font-semibold text-slate-800 dark:text-white">Order #{order.id}</span>
-                    <span className={`px-2 py-0.5 text-xs rounded-full text-white ${getStatusColor(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">{order.date}</span>
-                </div>
-                <div className="flex items-center space-x-4">
-                  <img 
-                    src={order.image} 
-                    alt={order.title}
-                    className="w-16 h-16 rounded-lg object-cover"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-medium text-slate-800 dark:text-white">{order.title}</h3>
-                    <p className="text-primary-600 dark:text-primary-400 font-semibold">¥{order.price.toLocaleString()}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Tracking</p>
-                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{order.tracking}</p>
-                    <button className="text-xs text-primary-600 hover:text-primary-700">Track →</button>
-                  </div>
-                </div>
-              </div>
-            ))}
+        {activeTab === 'purchases' && (
+          <div className="text-center py-12">
+            <Package className="w-16 h-16 text-slate-300 mx-auto mb-4" />
+            <p className="text-slate-500 dark:text-slate-400 mb-4">View your purchase history</p>
+            <Link href="/purchase/orders" className="inline-block px-6 py-2 bg-amber-500 text-white rounded-lg font-medium hover:bg-amber-600">
+              View Purchases
+            </Link>
           </div>
         )}
 
