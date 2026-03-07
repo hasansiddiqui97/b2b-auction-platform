@@ -12,26 +12,24 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Check for existing session on mount
     async function checkSession() {
-      if (!isSupabaseConfigured()) {
-        // Fallback: check localStorage (for demo mode)
-        const savedUserId = localStorage.getItem('hw_user_id');
-        if (savedUserId) {
-          // Fetch user profile
-          const { data } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', savedUserId)
-            .single();
-          
-          if (data) {
-            setUser({
-              id: data.id,
-              email: data.email,
-              full_name: data.full_name,
-              role: data.role,
-              is_verified: data.is_verified,
-            });
-          }
+      // Check localStorage first (works regardless of Supabase config)
+      const savedUserId = localStorage.getItem('hw_user_id');
+      if (savedUserId) {
+        // Fetch user profile
+        const { data } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', savedUserId)
+          .single();
+        
+        if (data) {
+          setUser({
+            id: data.id,
+            email: data.email,
+            full_name: data.full_name,
+            role: data.role,
+            is_verified: data.is_verified,
+          });
         }
       }
       setLoading(false);
