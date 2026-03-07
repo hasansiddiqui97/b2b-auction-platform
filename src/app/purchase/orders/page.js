@@ -132,8 +132,8 @@ export default function OrdersPage() {
     if (activeTab === 'delivered') return order.status === 'delivered' || order.status === 'completed';
     return true;
   }).filter(order => 
-    order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.items.some(item => item.title.toLowerCase().includes(searchQuery.toLowerCase()))
+    (order.id && order.id.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    (order.items && order.items.length > 0 && order.items.some(item => item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())))
   );
 
   return (
