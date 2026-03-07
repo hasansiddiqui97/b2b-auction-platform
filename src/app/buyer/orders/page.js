@@ -1,106 +1,86 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useAuth } from '@/context/AuthContext';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 import { 
   Package,
   Truck,
   CheckCircle,
   Clock,
-  AlertCircle,
   Search,
-  Filter,
   ChevronRight,
-  MapPin,
-  Eye,
-  Shield
 } from 'lucide-react';
 
 export default function OrdersPage() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock orders data
-  const orders = [
-    {
-      id: 'ORD-20260306-001',
-      items: [
-        { title: 'iPhone 15 Pro Max 256GB Natural Titanium', image: 'https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200', price: 92500, quantity: 1 }
-      ],
-      seller: 'Hayaland Electronics',
-      total: 95225,
-      status: 'shipped',
-      date: '2026-03-06',
-      tracking: 'YT8234567890',
-      carrier: 'Yamato Transport',
-      steps: [
-        { status: 'ordered', label: 'Order Placed', complete: true, time: 'Mar 6, 10:30 AM' },
-        { status: 'paid', label: 'Payment Confirmed', complete: true, time: 'Mar 6, 10:31 AM' },
-        { status: 'shipped', label: 'Shipped', complete: true, time: 'Mar 6, 2:00 PM' },
-        { status: 'delivered', label: 'Out for Delivery', complete: false, time: '' }
-      ]
-    },
-    {
-      id: 'ORD-20260301-001',
-      items: [
-        { title: 'Sony WH-1000XM5 Wireless Headphones', image: 'https://images.unsplash.com/photo-1618366712010-f4ae9c647dcb?w=200', price: 18500, quantity: 1 }
-      ],
-      seller: 'AudioDirect',
-      total: 19025,
-      status: 'delivered',
-      date: '2026-03-01',
-      tracking: 'YT1234567890',
-      carrier: 'Yamato Transport',
-      steps: [
-        { status: 'ordered', label: 'Order Placed', complete: true, time: 'Mar 1, 9:00 AM' },
-        { status: 'paid', label: 'Payment Confirmed', complete: true, time: 'Mar 1, 9:05 AM' },
-        { status: 'shipped', label: 'Shipped', complete: true, time: 'Mar 2, 11:00 AM' },
-        { status: 'delivered', label: 'Delivered', complete: true, time: 'Mar 4, 3:30 PM' }
-      ]
-    },
-    {
-      id: 'ORD-20260225-001',
-      items: [
-        { title: 'iPad Pro 11" M4 256GB', image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=200', price: 98000, quantity: 1 }
-      ],
-      seller: 'Apple Store Japan',
-      total: 100940,
-      status: 'delivered',
-      date: '2026-02-25',
-      tracking: 'YT9876543210',
-      carrier: 'FedEx',
-      steps: [
-        { status: 'ordered', label: 'Order Placed', complete: true, time: 'Feb 25, 2:00 PM' },
-        { status: 'paid', label: 'Payment Confirmed', complete: true, time: 'Feb 25, 2:10 PM' },
-        { status: 'shipped', label: 'Shipped', complete: true, time: 'Feb 26, 9:00 AM' },
-        { status: 'delivered', label: 'Delivered', complete: true, time: 'Mar 1, 11:00 AM' }
-      ]
-    },
-    {
-      id: 'ORD-20260220-001',
-      items: [
-        { title: 'MacBook Pro 14" M3 Pro 512GB', image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200', price: 278000, quantity: 1 },
-        { title: 'Magic Keyboard', image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=200', price: 18000, quantity: 1 }
-      ],
-      seller: 'Apple Store Japan',
-      total: 304780,
-      status: 'delivered',
-      date: '2026-02-20',
-      tracking: 'YT5555555555',
-      carrier: 'DHL',
-      steps: [
-        { status: 'ordered', label: 'Order Placed', complete: true, time: 'Feb 20, 4:00 PM' },
-        { status: 'paid', label: 'Payment Confirmed', complete: true, time: 'Feb 20, 4:15 PM' },
-        { status: 'shipped', label: 'Shipped', complete: true, time: 'Feb 21, 10:00 AM' },
-        { status: 'delivered', label: 'Delivered', complete: true, time: 'Feb 24, 2:00 PM' }
-      ]
+  useEffect(() => {
+    async function fetchOrders() {
+      if (!user || !isSupabaseConfigured() || !supabase) {
+        setLoading(false);
+        return;
+      }
+
+      // Fetch orders where buyer_id matches current user
+      const { data: ordersData, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('buyer_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching orders:', error);
+      } else {
+        // Fetch auction details for each order
+        const ordersWithAuctions = await Promise.all(
+          (ordersData || []).map(async (order) => {
+            const { data: auction } = await supabase
+              .from('auctions')
+              .select('*')
+              .eq('id', order.auction_id)
+              .single();
+            
+            const { data: seller } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('id', order.seller_id)
+              .single();
+
+            return {
+              id: order.order_number || order.id,
+              items: auction ? [{
+                title: auction.title,
+                image: auction.images?.[0] || '',
+                price: order.total_amount,
+                quantity: 1
+              }] : [],
+              seller: seller?.full_name || 'Seller',
+              total: order.total_amount,
+              status: order.status,
+              date: new Date(order.created_at).toISOString().split('T')[0],
+              tracking: order.tracking_number || '',
+              carrier: order.shipping_carrier || '',
+            };
+          })
+        );
+        setOrders(ordersWithAuctions);
+      }
+      setLoading(false);
     }
-  ];
+
+    fetchOrders();
+  }, [user]);
 
   const tabs = [
     { id: 'all', name: 'All Orders', count: orders.length },
-    { id: 'active', name: 'Active', count: orders.filter(o => ['pending', 'paid', 'shipped'].includes(o.status)).length },
+    { id: 'active', name: 'Active', count: orders.filter(o => ['pending', 'paid', 'shipped', 'completed'].includes(o.status)).length },
     { id: 'delivered', name: 'Delivered', count: orders.filter(o => o.status === 'delivered').length },
   ];
 
@@ -109,6 +89,7 @@ export default function OrdersPage() {
       pending: 'bg-amber-500',
       paid: 'bg-blue-500',
       shipped: 'bg-blue-500',
+      completed: 'bg-emerald-500',
       delivered: 'bg-emerald-500',
     };
     return colors[status] || 'bg-slate-500';
@@ -116,17 +97,39 @@ export default function OrdersPage() {
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case 'delivered': return CheckCircle;
+      case 'delivered': 
+      case 'completed':
+        return CheckCircle;
       case 'shipped': return Truck;
       case 'paid': return Shield;
       default: return Clock;
     }
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pt-16 flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pt-16">
+        <div className="max-w-5xl mx-auto px-4 py-12 text-center">
+          <Package className="w-16 h-16 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
+          <h2 className="text-xl font-bold dark:text-white mb-2">Please log in</h2>
+          <p className="text-slate-500 dark:text-slate-400">Log in to view your orders</p>
+        </div>
+      </div>
+    );
+  }
+
   const filteredOrders = orders.filter(order => {
     if (activeTab === 'all') return true;
-    if (activeTab === 'active') return ['pending', 'paid', 'shipped'].includes(order.status);
-    if (activeTab === 'delivered') return order.status === 'delivered';
+    if (activeTab === 'active') return ['pending', 'paid', 'shipped', 'completed'].includes(order.status);
+    if (activeTab === 'delivered') return order.status === 'delivered' || order.status === 'completed';
     return true;
   }).filter(order => 
     order.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
