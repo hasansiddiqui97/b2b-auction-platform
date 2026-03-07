@@ -13,6 +13,35 @@ export default function AuctionDetail() {
   const [loading, setLoading] = useState(true);
   const [bidAmount, setBidAmount] = useState('');
   const [error, setError] = useState('');
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  // Calculate time remaining
+  useEffect(() => {
+    if (!auction?.end_time) return;
+    
+    const calculateTimeLeft = () => {
+      const end = new Date(auction.end_time).getTime();
+      const now = new Date().getTime();
+      const diff = end - now;
+      
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+      
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((diff % (1000 * 60)) / 1000)
+      });
+    };
+    
+    calculateTimeLeft();
+    const timer = setInterval(calculateTimeLeft, 1000);
+    return () => clearInterval(timer);
+  }, [auction?.end_time]);
 
   useEffect(() => {
     if (!auctionId) return;
@@ -57,9 +86,24 @@ export default function AuctionDetail() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
             {auction.images && auction.images.length > 0 ? (
-              <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-200">
-                <Image src={auction.images[0]} alt={auction.title} fill className="object-cover" />
-              </div>
+              <>
+                <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-200">
+                  <Image src={auction.images[selectedImage]} alt={auction.title} fill className="object-cover" />
+                </div>
+                {auction.images.length > 1 && (
+                  <div className="flex gap-2 mt-4">
+                    {auction.images.map((img, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => setSelectedImage(i)}
+                        className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${selectedImage === i ? 'border-amber-500' : 'border-transparent'}`}
+                      >
+                        <Image src={img} alt="" width={80} height={80} className="object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="aspect-square rounded-2xl bg-slate-200 flex items-center justify-center text-6xl">📱</div>
             )}
@@ -70,7 +114,7 @@ export default function AuctionDetail() {
             <div className="flex items-center gap-2 mb-4"><div className="flex">{[1,2,3,4,5].map(s=><Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400"/>)}</div><span className="text-slate-600">4.8 ({auction.bid_count || 0} bids)</span></div>
             <div className="flex gap-4 text-slate-600 mb-6"><span>📦 {auction.bid_count || 0} bids</span><span>👁 {auction.watch_count || 0} watching</span></div>
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white mb-6">
-              <div className="flex justify-between mb-4"><div><p className="text-amber-400 text-sm">CURRENT BID</p><p className="text-5xl font-bold">¥{(auction?.current_bid||auction?.starting_price||0).toLocaleString()}</p><p className="text-slate-400">{auction?.bid_count||0} bids</p></div><div className="text-right"><p className="text-slate-400 text-sm">ENDS IN</p><p className="text-2xl font-bold text-amber-400">2d 14h 32m</p></div></div>
+              <div className="flex justify-between mb-4"><div><p className="text-amber-400 text-sm">CURRENT BID</p><p className="text-5xl font-bold">¥{(auction?.current_bid||auction?.starting_price||0).toLocaleString()}</p><p className="text-slate-400">{auction?.bid_count||0} bids</p></div><div className="text-right"><p className="text-slate-400 text-sm">ENDS IN</p><p className="text-2xl font-bold text-amber-400">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</p></div></div>
               <div className="flex gap-2 mb-3"><input type="number" value={bidAmount} onChange={e=>setBidAmount(e.target.value)} className="flex-1 px-4 py-3 rounded-lg text-slate-900"/><button className="px-6 py-3 bg-amber-500 text-slate-900 font-bold rounded-lg">BID NOW</button></div>
               <div className="flex gap-2 mb-4"><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+1000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥1,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+5000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥5,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+10000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥10,000</button></div>
               <div className="border-t border-white/20 pt-4 text-center">Buy Now: <span className="text-amber-400 font-bold">¥{(auction?.buy_now_price||0).toLocaleString()}</span></div>
