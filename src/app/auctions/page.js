@@ -18,7 +18,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import AuctionCard from '@/components/AuctionCard';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-import { mockAuctions, currentUser } from '@/data/mockData';
 
 export default function AuctionListings() {
   const [auctions, setAuctions] = useState([]);
@@ -29,7 +28,7 @@ export default function AuctionListings() {
   const [sortBy, setSortBy] = useState('ending-soon');
   const [viewMode, setViewMode] = useState('grid');
   const [showFilters, setShowFilters] = useState(false);
-  const [watchlist, setWatchlist] = useState(currentUser.watchlist);
+  const [watchlist, setWatchlist] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch auctions with seller info from Supabase
@@ -38,7 +37,7 @@ export default function AuctionListings() {
       if (isSupabaseConfigured() && supabase) {
         const { data: auctionsData, error } = await supabase
           .from('auctions')
-          .select('*, profiles(full_name, company_name, is_verified, location)')
+          .select('*')
           .eq('status', 'active')
           .order('end_time', { ascending: true });
         
@@ -75,9 +74,9 @@ export default function AuctionListings() {
           return;
         }
       }
-      // Fallback to mock data
-      setAuctions(mockAuctions);
-      setFilteredAuctions(mockAuctions);
+      // No mock data fallback
+      
+      
       setIsLoading(false);
     }
 

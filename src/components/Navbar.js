@@ -1,20 +1,28 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
-import { currentUser } from '@/data/mockData';
 import { Sun, Moon, Menu, X, Bell, Wallet, Search, ChevronDown } from 'lucide-react';
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const currentRole = 'buyer';
 
-  const handleSignOut = () => {
-    console.log('Sign out');
-  };
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   return (
     <>
@@ -44,7 +52,7 @@ export default function Navbar() {
 
               <div className="flex items-center space-x-1 px-2 py-1 bg-emerald-50 rounded">
                 <Wallet className="w-4 h-4 text-emerald-600" />
-                <span className="text-sm text-emerald-700">¥{currentUser.balance.toLocaleString()}</span>
+                <span className="text-sm text-emerald-700">¥0</span>
               </div>
 
               <button onClick={toggleTheme} className="p-2">
@@ -56,9 +64,31 @@ export default function Navbar() {
                 <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full"></span>
               </Link>
 
-              <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 bg-primary-500 rounded-full text-white">
-                {currentUser.name.charAt(0)}
-              </button>
+              <div className="relative" ref={userMenuRef}>
+                <button onClick={() => setUserMenuOpen(!userMenuOpen)} className="w-8 h-8 bg-slate-700 rounded-full text-white font-medium">
+                  U
+                </button>
+                
+                {userMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 py-1 z-50">
+                    <Link href="/dashboard" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                      My Dashboard
+                    </Link>
+                    <Link href="/buyer/settings" onClick={() => setUserMenuOpen(false)} className="block px-4 py-2 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700">
+                      Settings
+                    </Link>
+                    <button 
+                    onClick={() => {
+                      localStorage.removeItem('hw_user_id');
+                      window.location.href = '/login';
+                    }}
+                    className="block w-full text-left px-4 py-2 text-red-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                  >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Mobile Menu Button */}
@@ -72,7 +102,7 @@ export default function Navbar() {
         {mobileMenuOpen && (
           <div className="md:hidden border-t border-slate-200 dark:border-slate-700 p-4 space-y-2">
             <Link href="/auctions" className="block py-2">🔍 Auctions</Link>
-            <Link href="/buyer" className="block py-2">👤 My Dashboard</Link>
+            <Link href="/dashboard" className="block py-2">👤 My Dashboard</Link>
             <Link href="/buyer/settings" className="block py-2">⚙️ Settings</Link>
             <button onClick={toggleTheme} className="block py-2 w-full text-left">
               {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}

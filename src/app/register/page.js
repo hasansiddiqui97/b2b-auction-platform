@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { hashPassword } from '@/lib/password';
 import { 
   Mail, 
   Lock, 
@@ -34,7 +35,9 @@ const countryCodes = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1); // 1: Details, 2: Email Verify, 3: Phone Verify, 4: Complete
+  const [step, setStep] = useState(1);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(""); // 1: Details, 2: Email Verify, 3: Phone Verify, 4: Complete
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -48,54 +51,206 @@ export default function RegisterPage() {
   const [verificationCode, setVerificationCode] = useState('');
   const [emailVerified, setEmailVerified] = useState(false);
   const [phoneVerified, setPhoneVerified] = useState(false);
-  const [countryCode, setCountryCode] = useState('+81'); // Japan default
+  const [countryCode, setCountryCode] = useState('+81');
+  const [sentEmailCode, setSentEmailCode] = useState('');
+  const [sentPhoneCode, setSentPhoneCode] = useState(''); // Japan default
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    if (error) setError('');
+    if (success) setSuccess('');
   };
 
-  const handleSubmitStep1 = (e) => {
+  const handleSubmitStep1 = async (e) => {
     e.preventDefault();
     // Validate
     if (!formData.firstName || !formData.lastName || !formData.dob || !formData.email || !formData.password || !formData.phone) {
-      alert('Please fill in all fields');
+      setError('Please fill in all fields');
       return;
     }
+
+    // Save user to Supabase
+    try {
+      if (isSupabaseConfigured() && supabase) {
+        // Check if email already exists
+        const { data: existing } = await supabase
+          .from('profiles')
+          .select('email, phone')
+          .or(`email.eq.${formData.email},phone.eq.${countryCode} ${formData.phone}`)
+          .limit(1);
+        
+        if (existing && existing.length > 0) {
+          setError('Email or phone number already registered!');
+          return;
+        }
+        
+        const userId = '550e8400-e29b-41d4-a716-' + Date.now().toString().slice(-12)
+        
+        // Hash the password
+        const hashedPassword = await hashPassword(formData.password);
+        
+        const { data, error } = await supabase
+          .from('profiles')
+          .insert([{
+            id: userId,
+            email: formData.email,
+            full_name: `${formData.firstName} ${formData.lastName}`,
+            phone: `${countryCode} ${formData.phone}`,
+            dob: formData.dob,
+            password: hashedPassword,
+            email_verified: true,
+            phone_verified: true,
+            wallet_balance: 0,
+            is_verified: false
+          }])
+          .select();
+        
+        if (error) throw error;
+        console.log('User saved:', data);
+        // Save user ID for login
+        if (data && data[0]) {
+          localStorage.setItem('hw_user_id', data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Error saving user:', err);
+    }
+
     setStep(2);
+    
+    // Auto-send verification email when reaching Step 2
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentEmailCode(code);
+    
+    try {
+      const res = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          name: formData.firstName,
+          verificationCode: code
+        })
+      });
+      
+      const result = await res.json();
+      console.log('Auto-send email response:', result);
+      
+      if (res.ok && result.success) {
+        setSuccess('Verification code sent to your email!'); setTimeout(() => setSuccess(''), 5000);
+        console.log('YOUR VERIFICATION CODE:', code);
+      } else {
+        console.log('Fallback - code:', code);
+      }
+    } catch (err) {
+      console.error('Auto-send error:', err);
+    }
   };
 
-  const handleEmailVerify = () => {
-    // Simulate email verification code
-    if (verificationCode.length === 6) {
+  const handleEmailVerify = async () => {
+    if (verificationCode.length !== 6) return;
+    
+    // If already verified (matches what we sent), proceed
+    if (verificationCode === sentEmailCode) {
       setEmailVerified(true);
       if (phoneVerified) {
         setStep(4);
       } else {
+        // Send SMS for phone verification
+        const phoneCode = Math.floor(100000 + Math.random() * 900000).toString();
+        setSentPhoneCode(phoneCode);
+        
+        try {
+          const res = await fetch('/api/send-sms', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: countryCode + ' ' + formData.phone,
+              verificationCode: phoneCode,
+              name: formData.firstName
+            })
+          });
+          
+          const result = await res.json();
+          if (res.ok && result.success) {
+            setSuccess('SMS code sent to your phone!'); setTimeout(() => setSuccess(''), 5000);
+            console.log('SMS VERIFICATION CODE:', phoneCode);
+          } else {
+            console.log('SMS failed, code:', phoneCode);
+          }
+        } catch (err) {
+          console.error('SMS error:', err);
+        }
+        
         setStep(3);
+        setVerificationCode('');
       }
+      return;
+    }
+    
+    // Generate and send new code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setSentEmailCode(code);
+    
+    try {
+      const res = await fetch('/api/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          name: formData.firstName,
+          verificationCode: code
+        })
+      });
+      
+      const result = await res.json();
+      console.log('Email API response:', result);
+      
+      if (res.ok && result.success) {
+        setSuccess('Verification code sent to your email!'); setTimeout(() => setSuccess(''), 5000);
+        // Also log code for debugging
+        console.log('YOUR VERIFICATION CODE:', code);
+        console.log('YOUR VERIFICATION CODE:', code);
+      } else {
+        console.log('API Error, using simulation. Code:', code);
+        setSuccess('Using simulation mode. Code: ' + code); setVerificationCode(code);
+        setVerificationCode(code);
+      }
+    } catch (err) {
+      console.error('Email send error:', err);
+      console.log('Using simulation. Code:', code);
+      setVerificationCode(code);
     }
   };
 
   const handlePhoneVerify = () => {
-    // Simulate phone verification code
-    if (verificationCode.length === 6) {
+    if (verificationCode.length !== 6) return;
+    
+    // Validate the code
+    if (verificationCode === sentPhoneCode) {
       setPhoneVerified(true);
       setStep(4);
+    } else {
+      setError('Invalid verification code. Please try again.');
     }
   };
 
   const handleFinalSubmit = async () => {
     try {
       if (isSupabaseConfigured() && supabase) {
+        // Generate a UUID for the user
+        const userId = '550e8400-e29b-41d4-a716-' + Date.now().toString().slice(-12)
+        
         const { data, error } = await supabase
           .from('profiles')
           .insert([{
+            id: userId,
             email: formData.email,
             full_name: `${formData.firstName} ${formData.lastName}`,
             phone: `${countryCode} ${formData.phone}`,
             dob: formData.dob,
-            role: 'buyer',
+            
             email_verified: true,
             phone_verified: true,
             wallet_balance: 0,
@@ -112,7 +267,7 @@ export default function RegisterPage() {
       setTimeout(() => router.push('/auctions'), 1500);
     } catch (error) {
       console.error('Error saving:', error);
-      alert('Registration successful! (Demo mode)');
+      setError('Error: ' + error.message);
     }
   };
 
@@ -151,6 +306,16 @@ export default function RegisterPage() {
               <p className="text-slate-500 dark:text-slate-400 text-center mb-6">Join Hayaland Wholesale</p>
 
               <form onSubmit={handleSubmitStep1} className="space-y-4">
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-lg text-sm">
+                    {success}
+                  </div>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">First Name *</label>
@@ -241,6 +406,17 @@ export default function RegisterPage() {
               <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-2">Verify Email</h1>
               <p className="text-slate-500 dark:text-slate-400 text-center mb-6">We sent a code to {formData.email}</p>
 
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm mb-4">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-lg text-sm mb-4">
+                  {success}
+                </div>
+              )}
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Enter 6-digit code</label>
@@ -270,6 +446,17 @@ export default function RegisterPage() {
             <>
               <h1 className="text-2xl font-bold text-slate-800 dark:text-white text-center mb-2">Verify Phone</h1>
               <p className="text-slate-500 dark:text-slate-400 text-center mb-6">We sent a code to {formData.phone}</p>
+
+              {error && (
+                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg text-sm mb-4">
+                  {error}
+                </div>
+              )}
+              {success && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 px-4 py-3 rounded-lg text-sm mb-4">
+                  {success}
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div>
@@ -320,8 +507,8 @@ export default function RegisterPage() {
                 <span>Your data is secure with us</span>
               </div>
 
-              <Link href="/auctions" className="btn-primary w-full text-center block">
-                Start Shopping
+              <Link href="/dashboard" className="btn-primary w-full text-center block">
+                Go to Profile
               </Link>
             </>
           )}

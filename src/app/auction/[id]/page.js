@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Clock, Gavel, Heart, Share2, Shield, MapPin, CheckCircle, ChevronLeft } from 'lucide-react';
-import { mockAuctions, currentUser } from '@/data/mockData';
+import { supabase } from '@/lib/supabase';
 
 function LoadingState() {
   return (
@@ -30,8 +30,8 @@ function ErrorState({ onRetry }) {
   );
 }
 
-function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched, setIsWatched, onPlaceBid, isPlacingBid, bidError, bidSuccess }) {
-  const minBid = auction.currentBid + 500;
+function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched, setIsWatched, onPlaceBid, isPlacingBid, bidError, bidSuccess, bidHistory }) {
+  const minBid = (auction.currentBid || auction.starting_price || 0) + (auction.bid_increment || 500);
   const hasMultipleImages = auction.images && auction.images.length > 1;
   
   return (
@@ -48,11 +48,20 @@ function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched,
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Image Section */}
           <div className="space-y-4">
+            {/* Main Image */}
             <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-              {auction.images && auction.images[0] ? (
-                <Image src={auction.images[0]} alt={auction.title} fill className="object-cover" />
+              {auction.images && auction.images.length > 0 ? (
+                <Image 
+                  src={auction.images[selectedImage]} 
+                  alt={auction.title} 
+                  fill 
+                  className="object-cover"
+                />
               ) : (
-                <div className="flex items-center justify-center h-full text-slate-400">No Image</div>
+                <div className="flex flex-col items-center justify-center h-full text-slate-400">
+                  <div className="text-6xl mb-2">📷</div>
+                  <p>No Image Available</p>
+                </div>
               )}
               <div className="absolute top-4 left-4">
                 <span className="px-3 py-1 bg-black/50 text-white text-sm rounded-full backdrop-blur-sm">
@@ -60,6 +69,28 @@ function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched,
                 </span>
               </div>
             </div>
+            
+            {/* Thumbnail Gallery - Show if 2-10 images */}
+            {auction.images && auction.images.length > 1 && (
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {auction.images.slice(0, 10).map((img, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
+                      selectedImage === index ? 'border-primary-500' : 'border-transparent'
+                    }`}
+                  >
+                    <Image src={img} alt={`${auction.title} ${index + 1}`} fill className="object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Image count badge */}
+            {auction.images && auction.images.length > 0 && (
+              <p className="text-sm text-slate-500">{auction.images.length} image{auction.images.length > 1 ? 's' : ''}</p>
+            )}
           </div>
 
           {/* Details Section */}
@@ -75,11 +106,14 @@ function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched,
             <div className="flex items-center space-x-4 mb-4">
               <div className="flex items-center space-x-1 text-slate-500">
                 <MapPin className="w-4 h-4" />
-                <span>{auction.seller?.location || 'Tokyo, Japan'}</span>
+                <span>{auction.seller_location || 'Tokyo, Japan'}</span>
               </div>
               <div className="flex items-center space-x-1 text-slate-500">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
-                <span>{auction.seller?.name || 'Hayaland Electronics'}</span>
+                {auction.seller_verified && <CheckCircle className="w-4 h-4 text-emerald-500" />}
+                <span>{auction.seller_name || 'Hayaland Electronics'}</span>
+                {auction.seller_verified && (
+                  <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">Verified</span>
+                )}
               </div>
             </div>
 
@@ -147,6 +181,28 @@ function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched,
                 Your payment is held securely until you receive the item.
               </p>
             </div>
+
+            {/* Bid History */}
+            {bidHistory && bidHistory.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold text-slate-800 dark:text-white mb-3">Bid History ({bidHistory.length})</h3>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {bidHistory.map((bid, index) => (
+                    <div key={bid.id || index} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                      <div>
+                        <p className="font-medium text-slate-800 dark:text-white">
+                          {bid.profiles?.full_name || 'Anonymous'}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(bid.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <p className="font-bold text-emerald-600">¥{bid.amount?.toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -164,15 +220,37 @@ export default function AuctionDetail({ params }) {
   const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [bidError, setBidError] = useState('');
   const [bidSuccess, setBidSuccess] = useState('');
+  const [selectedImage, setSelectedImage] = useState(0);
+  const [bidHistory, setBidHistory] = useState([]);
 
-  // Load auction
+  // Load auction from Supabase
   useEffect(() => {
-    const found = mockAuctions.find(a => a.id === id);
-    if (found) {
-      setAuction(found);
-      setBidAmount(found.currentBid + 500);
+    async function fetchAuction() {
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('id', id)
+        .single();
+      
+      if (data) {
+        setAuction(data);
+        setBidAmount((data.currentBid || data.starting_price) + (data.bid_increment || 500));
+        
+        // Fetch bid history
+        const { data: bids } = await supabase
+          .from('bids')
+          .select('*, profiles(full_name)')
+          .eq('auction_id', id)
+          .order('created_at', { ascending: false });
+        
+        if (bids) setBidHistory(bids);
+      } else if (error) {
+        console.error('Auction error:', error);
+      }
+      setLoading(false);
     }
-    setLoading(false);
+    
+    fetchAuction();
   }, [id]);
 
   // Timer
@@ -198,27 +276,90 @@ export default function AuctionDetail({ params }) {
 
   const handleRetry = () => {
     setLoading(true);
-    const found = mockAuctions.find(a => a.id === id);
-    if (found) {
-      setAuction(found);
-      setBidAmount(found.currentBid + 500);
-    }
+    // Will re-fetch from Supabase
     setLoading(false);
   };
 
-  const handlePlaceBid = () => {
+  const handlePlaceBid = async () => {
     setBidError('');
     setBidSuccess('');
-    const bid = parseInt(bidAmount);
-    if (bid < auction.currentBid + 500) {
-      setBidError('Bid must be higher than current + ¥500');
+    
+    // Check if auction has ended
+    if (auction.end_time && new Date(auction.end_time) < new Date()) {
+      setBidError('This auction has ended');
       return;
     }
+    
+    // Check if auction is still active
+    if (auction.status === 'closed') {
+      setBidError('This auction is closed');
+      return;
+    }
+    
+    const bid = parseInt(bidAmount);
+    const minBid = (auction.currentBid || auction.starting_price || 0) + (auction.bid_increment || 500);
+    
+    if (bid < minBid) {
+      setBidError(`Bid must be at least ¥${minBid.toLocaleString()}`);
+      return;
+    }
+
+    // Check if user is logged in
+    const userId = localStorage.getItem('hw_user_id');
+    if (!userId) {
+      setBidError('Please login to place a bid');
+      return;
+    }
+
     setIsPlacingBid(true);
-    setTimeout(() => {
-      setIsPlacingBid(false);
-      setBidSuccess('Bid placed successfully!');
-    }, 1500);
+
+    try {
+      // 1. Save bid to bids table
+      const { data: bidData, error: bidError } = await supabase
+        .from('bids')
+        .insert({
+          auction_id: auction.id,
+          bidder_id: userId,
+          amount: bid,
+          is_auto_bid: false
+        })
+        .select()
+        .single();
+
+      if (bidError) throw bidError;
+
+      // 2. Update auction with new current_bid and increment bid_count
+      const newBidCount = (auction.bid_count || 0) + 1;
+      const { error: updateError } = await supabase
+        .from('auctions')
+        .update({
+          current_bid: bid,
+          bid_count: newBidCount
+        })
+        .eq('id', auction.id);
+
+      if (updateError) throw updateError;
+
+      setBidSuccess(`Bid placed! You are the highest bidder at ¥${bid.toLocaleString()}`);
+      
+      // Refresh auction data
+      const { data: updatedAuction } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('id', auction.id)
+        .single();
+      
+      if (updatedAuction) {
+        setAuction(updatedAuction);
+        setBidAmount((updatedAuction.currentBid || updatedAuction.starting_price) + (updatedAuction.bid_increment || 500));
+      }
+
+    } catch (err) {
+      console.error('Bid error:', err);
+      setBidError('Failed to place bid. Please try again.');
+    }
+
+    setIsPlacingBid(false);
   };
 
   if (loading) return <LoadingState />;
@@ -236,6 +377,7 @@ export default function AuctionDetail({ params }) {
       isPlacingBid={isPlacingBid}
       bidError={bidError}
       bidSuccess={bidSuccess}
+        bidHistory={bidHistory}
     />
   );
 }

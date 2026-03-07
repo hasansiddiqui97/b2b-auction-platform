@@ -54,7 +54,7 @@ export default function AnalyticsPage() {
       emerald: 'bg-emerald-500 text-emerald-500',
       blue: 'bg-blue-500 text-blue-500',
       purple: 'bg-purple-500 text-purple-500',
-      orange: 'bg-orange-500 text-orange-500',
+      orange: 'bg-slate-700 text-slate-700',
     };
     return colors[color] || 'bg-slate-500 text-slate-500';
   };

@@ -94,7 +94,7 @@ export default function AdminDashboard() {
                 onClick={() => setActiveMenu(item.id)}
                 className={`flex items-center space-x-3 px-4 py-3 mx-2 rounded-lg transition-colors ${
                   activeMenu === item.id
-                    ? 'bg-gradient-to-r from-orange-500 to-yellow-500 text-white'
+                    ? 'bg-gradient-to-r from-slate-700 to-yellow-500 text-white'
                     : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
               >
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
         {/* User */}
         <div className="border-t border-slate-800 p-4">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center font-bold">
+            <div className="w-10 h-10 bg-gradient-to-r from-slate-700 to-yellow-500 rounded-full flex items-center justify-center font-bold">
               A
             </div>
             {sidebarOpen && (
@@ -136,19 +136,19 @@ export default function AdminDashboard() {
               <input
                 type="text"
                 placeholder="Search..."
-                className="pl-10 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                className="pl-10 pr-4 py-2 bg-slate-100 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-slate-700"
               />
             </div>
 
             {/* Notifications */}
             <button className="relative p-2 hover:bg-slate-100 rounded-lg">
               <Bell className="w-5 h-5 text-slate-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-orange-500 rounded-full"></span>
+              <span className="absolute top-1 right-1 w-2 h-2 bg-slate-700 rounded-full"></span>
             </button>
 
             {/* Profile */}
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-orange-500 to-yellow-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+              <div className="w-8 h-8 bg-gradient-to-r from-slate-700 to-yellow-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                 A
               </div>
             </div>
@@ -164,8 +164,8 @@ export default function AdminDashboard() {
               return (
                 <div key={idx} className="bg-white rounded-xl p-6 shadow-sm border border-slate-100">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
-                      <Icon className="w-6 h-6 text-orange-500" />
+                    <div className="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center">
+                      <Icon className="w-6 h-6 text-slate-700" />
                     </div>
                     <span className={`flex items-center text-sm font-medium ${stat.trend === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
                       {stat.trend === 'up' ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
@@ -184,7 +184,7 @@ export default function AdminDashboard() {
             <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-100">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="font-semibold text-slate-800">Recent Activity</h3>
-                <button className="text-sm text-orange-500 hover:text-orange-600 font-medium">View All →</button>
+                <button className="text-sm text-slate-700 hover:text-slate-800 font-medium">View All →</button>
               </div>
               <div className="p-6 space-y-4">
                 {recentActivity.map((activity, idx) => {
@@ -221,7 +221,7 @@ export default function AdminDashboard() {
                 {pendingActions.map((action) => (
                   <div key={action.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${action.urgent ? 'bg-orange-500' : 'bg-slate-400'}`}></div>
+                      <div className={`w-2 h-2 rounded-full ${action.urgent ? 'bg-slate-700' : 'bg-slate-400'}`}></div>
                       <span className="text-sm font-medium text-slate-700">{action.title}</span>
                     </div>
                     <div className="flex items-center space-x-2">

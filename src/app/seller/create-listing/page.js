@@ -61,18 +61,56 @@ export default function CreateListing() {
     }
   };
 
-  const handleImageUpload = (e) => {
+  const handleImageUpload = async (e) => {
     const files = Array.from(e.target.files);
-    const newImages = files.map(file => ({
-      id: Date.now() + Math.random(),
-      url: URL.createObjectURL(file),
-      file
-    }));
-    setImages([...images, ...newImages]);
+    
+    // Upload each file to Supabase Storage
+    for (const file of files) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`;
+      const filePath = `auctions/${fileName}`;
+      
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('auction-images')
+        .upload(filePath, file);
+      
+      if (error) {
+        console.error('Upload error:', error);
+        // Fallback to blob URL if storage not configured
+        const newImage = {
+          id: Date.now() + Math.random(),
+          url: URL.createObjectURL(file),
+          file,
+          isBlob: true
+        };
+        setImages(prev => [...prev, newImage]);
+      } else {
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('auction-images')
+          .getPublicUrl(filePath);
+        
+        const newImage = {
+          id: Date.now() + Math.random(),
+          url: urlData.publicUrl,
+          filePath,
+          isBlob: false
+        };
+        setImages(prev => [...prev, newImage]);
+      }
+    }
   };
 
-  const removeImage = (id) => {
-    setImages(images.filter(img => img.id !== id));
+  const removeImage = async (id) => {
+    const img = images.find(i => i.id === id);
+    if (img && img.filePath && !img.isBlob) {
+      // Delete from Supabase Storage
+      await supabase.storage
+        .from('auction-images')
+        .remove([img.filePath]);
+    }
+    setImages(images.filter(i => i.id !== id));
   };
 
   const handleSubmit = async (e) => {
@@ -81,6 +119,14 @@ export default function CreateListing() {
 
     try {
       // Prepare auction data
+      // Get user info for seller details
+      const userId = localStorage.getItem('hw_user_id');
+      let sellerName = 'Unknown Seller';
+      if (userId && supabase) {
+        const { data: userData } = await supabase.from('profiles').select('full_name').eq('id', userId).single();
+        if (userData) sellerName = userData.full_name;
+      }
+
       const auctionData = {
         title: formData.title,
         description: formData.description,
@@ -104,7 +150,10 @@ export default function CreateListing() {
         bid_count: 0,
         status: 'active',
         images: images.map(img => img.url),
-        seller_id: 'user-001',
+        seller_id: userId,
+        seller_name: sellerName,
+        seller_company: formData.companyName || '',
+        seller_verified: false,
       };
 
       // Save to Supabase if configured

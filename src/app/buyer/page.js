@@ -21,7 +21,7 @@ import {
   History,
   Search
 } from 'lucide-react';
-import { mockAuctions, currentUser } from '@/data/mockData';
+// No mock data - would fetch from Supabase in production
 
 export default function BuyerDashboard() {
   const pathname = usePathname();
@@ -85,8 +85,8 @@ export default function BuyerDashboard() {
       }
     ]);
 
-    // Mock watchlist from mockAuctions
-    setWatchlist(mockAuctions.filter(a => currentUser.watchlist.includes(a.id)));
+    // Empty watchlist - would fetch from Supabase in production
+    setWatchlist([]);
   }, []);
 
   const tabs = [
@@ -124,7 +124,7 @@ export default function BuyerDashboard() {
           <div className="flex items-center justify-between flex-col sm:flex-row gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-white">Hayaland Wholesale</h1>
-              <p className="text-emerald-100 mt-1">Welcome back, {currentUser.name}</p>
+              <p className="text-emerald-100 mt-1">Welcome back</p>
             </div>
             {/* Wallet Card */}
             <div className="glass-card p-4 w-full sm:min-w-64">
@@ -133,7 +133,7 @@ export default function BuyerDashboard() {
                 <Wallet className="w-4 h-4 text-emerald-500" />
               </div>
               <p className="text-2xl font-bold text-slate-800 dark:text-white">
-                ¥{currentUser.balance.toLocaleString()}
+                ¥0
               </p>
               <button className="mt-2 w-full text-sm text-primary-600 hover:text-primary-700 font-medium">
                 Add Funds →
