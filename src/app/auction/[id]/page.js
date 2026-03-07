@@ -211,7 +211,7 @@ function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched,
 }
 
 export default function AuctionDetail({ params }) {
-  const { id } = params;
+  const id = params?.id;
   const [auction, setAuction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('');
