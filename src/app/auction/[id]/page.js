@@ -171,10 +171,10 @@ export default function AuctionDetail() {
   if (!auction) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><div className="text-center"><h2 className="text-xl font-bold dark:text-white">Auction not found</h2><Link href="/auctions" className="text-amber-600 mt-2 block">Back to Auctions</Link></div></div>;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <div className="bg-gradient-to-r from-amber-600 to-amber-800 px-4 py-4"><Link href="/auctions" className="flex items-center text-white/80"><ChevronLeft className="w-5 h-5"/><span>Back</span></Link></div>
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 overflow-x-hidden">
+      <div className="bg-gradient-to-r from-amber-600 to-amber-800 px-3 sm:px-4 py-2 sm:py-3"><Link href="/auctions" className="flex items-center text-white/80 text-xs sm:text-sm"><ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5"/><span>Back</span></Link></div>
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 py-4 sm:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-8">
           <div>
             {auction.images && auction.images.length > 0 ? (
               <>
@@ -182,14 +182,14 @@ export default function AuctionDetail() {
                   <Image src={auction.images[selectedImage]} alt={auction.title} fill className="object-cover" />
                 </div>
                 {auction.images.length > 1 && (
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-2 sm:mt-4 overflow-x-auto pb-2">
                     {auction.images.map((img, i) => (
                       <button 
                         key={i} 
                         onClick={() => setSelectedImage(i)}
-                        className={`w-20 h-20 rounded-lg overflow-hidden border-2 ${selectedImage === i ? 'border-amber-500' : 'border-transparent'}`}
+                        className={`w-14 h-14 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 flex-shrink-0 ${selectedImage === i ? 'border-amber-500' : 'border-transparent'}`}
                       >
-                        <Image src={img} alt="" width={80} height={80} className="object-cover" />
+                        <Image src={img} alt="" width={80} height={80} className="object-cover w-full h-full" />
                       </button>
                     ))}
                   </div>
@@ -200,65 +200,92 @@ export default function AuctionDetail() {
             )}
           </div>
           <div>
-            <div className="flex items-center gap-3 mb-4"><span className="px-3 py-1 bg-emerald-500 text-white text-sm rounded-full">Grade {auction?.grade||'A'}</span><span className="text-slate-500 dark:text-slate-400">|</span><span className="dark:text-slate-300">{auction?.category}</span></div>
-            <h1 className="text-3xl font-bold mb-2 dark:text-white">{auction?.title}</h1>
-            <div className="flex items-center gap-2 mb-4"><div className="flex">{[1,2,3,4,5].map(s=><Star key={s} className="w-5 h-5 fill-amber-400 text-amber-400"/>)}</div><span className="text-slate-600 dark:text-slate-400">4.8 ({auction.bid_count || 0} bids)</span></div>
-            <div className="flex gap-4 text-slate-600 dark:text-slate-400 mb-6"><span>📦 {auction.bid_count || 0} bids</span><span>👁 {auction.watch_count || 0} watching</span></div>
-            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white mb-6">
-              <div className="flex justify-between mb-4"><div><p className="text-amber-400 text-sm">CURRENT BID</p><p className="text-5xl font-bold">¥{(auction?.current_bid||auction?.starting_price||0).toLocaleString()}</p><p className="text-slate-400">{auction?.bid_count||0} bids</p></div><div className="text-right"><p className="text-slate-400 text-sm">ENDS IN</p><p className="text-2xl font-bold text-amber-400">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</p></div></div>
-              <div className="flex gap-2 mb-3">
-                {error && <p className="w-full text-red-400 text-sm">{error}</p>}
-                {success && <p className="w-full text-emerald-400 text-sm">{success}</p>}
-                <input type="number" value={bidAmount} onChange={e=>setBidAmount(e.target.value)} className="flex-1 px-4 py-3 rounded-lg text-slate-900 dark:bg-slate-700 dark:text-white"/>
-                <button onClick={handlePlaceBid} disabled={isPlacingBid} className="px-6 py-3 bg-amber-500 text-slate-900 font-bold rounded-lg disabled:opacity-50">{isPlacingBid ? 'Placing...' : 'BID NOW'}</button>
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4 flex-wrap"><span className="px-2 sm:px-3 py-1 bg-emerald-500 text-white text-xs sm:text-sm rounded-full">Grade {auction?.grade||'A'}</span><span className="text-slate-500 dark:text-slate-400 text-sm">|</span><span className="dark:text-slate-300 text-sm">{auction?.category}</span></div>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-2 dark:text-white leading-tight">{auction?.title}</h1>
+            <div className="flex items-center gap-2 mb-3 sm:mb-4"><div className="flex">{[1,2,3,4,5].map(s=><Star key={s} className="w-4 h-5 fill-amber-400 text-amber-400"/>)}</div><span className="text-slate-600 dark:text-slate-400 text-sm">4.8 ({auction.bid_count || 0} bids)</span></div>
+            <div className="flex gap-3 sm:gap-4 text-slate-600 dark:text-slate-400 mb-4 sm:mb-6 text-sm"><span>📦 {auction.bid_count || 0} bids</span><span>👁 {auction.watch_count || 0} watching</span></div>
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 text-white mb-4 sm:mb-6">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-3 sm:mb-4">
+                <div>
+                  <p className="text-amber-400 text-xs sm:text-sm">CURRENT BID</p>
+                  <p className="text-3xl sm:text-4xl lg:text-5xl font-bold">¥{(auction?.current_bid||auction?.starting_price||0).toLocaleString()}</p>
+                  <p className="text-slate-400 text-sm">{auction?.bid_count||0} bids</p>
+                </div>
+                <div className="text-left sm:text-right">
+                  <p className="text-slate-400 text-xs sm:text-sm">ENDS IN</p>
+                  <p className="text-xl sm:text-2xl font-bold text-amber-400">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m</p>
+                </div>
               </div>
-              <div className="flex gap-2 mb-4"><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+1000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥1,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+5000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥5,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+10000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥10,000</button></div>
-              <div className="border-t border-white/20 pt-4 text-center">
+              <div className="flex flex-col gap-2 mb-3">
+                {error && <p className="w-full text-red-400 text-xs sm:text-sm">{error}</p>}
+                {success && <p className="w-full text-emerald-400 text-xs sm:text-sm">{success}</p>}
+                <div className="flex gap-2">
+                  <input type="number" value={bidAmount} onChange={e=>setBidAmount(e.target.value)} className="flex-1 px-3 sm:px-4 py-2 sm:py-3 rounded-lg text-slate-900 dark:bg-slate-700 dark:text-white text-sm min-w-0"/>
+                  <button onClick={handlePlaceBid} disabled={isPlacingBid} className="px-4 sm:px-6 py-2 sm:py-3 bg-amber-500 text-slate-900 font-bold rounded-lg disabled:opacity-50 text-sm sm:text-base whitespace-nowrap">{isPlacingBid ? '...' : 'BID'}</button>
+                </div>
+              </div>
+              <div className="flex gap-1 sm:gap-2 mb-3 sm:mb-4 overflow-x-auto">
+                <button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+1000)} className="flex-1 py-2 bg-white/10 rounded-lg text-xs sm:text-sm whitespace-nowrap">+¥1K</button>
+                <button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+5000)} className="flex-1 py-2 bg-white/10 rounded-lg text-xs sm:text-sm whitespace-nowrap">+¥5K</button>
+                <button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+10000)} className="flex-1 py-2 bg-white/10 rounded-lg text-xs sm:text-sm whitespace-nowrap">+¥10K</button>
+              </div>
+              <div className="border-t border-white/20 pt-3 sm:pt-4 text-center">
                 <button 
                   onClick={() => setShowBuyNowModal(true)}
                   disabled={isProcessingBuyNow || auction?.status === 'sold'}
-                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg disabled:opacity-50"
+                  className="w-full sm:w-auto px-4 sm:px-6 py-2 sm:py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg disabled:opacity-50 text-sm sm:text-base"
                 >
                   {auction?.status === 'sold' ? 'SOLD' : 'Buy Now'} ¥{(auction?.buy_now_price||0).toLocaleString()}
                 </button>
               </div>
             </div>
-            <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
-              <div className="flex items-center gap-4"><div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">🏪</div><div><p className="font-bold flex items-center gap-2 dark:text-white">{auction.seller_name || 'Seller'}{auction.seller_verified && <CheckCircle className="w-4 h-4 text-emerald-500"/>}</p><p className="text-sm text-slate-500 dark:text-slate-400">{auction.location || 'Japan'}</p></div></div>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-3 sm:p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-3 sm:gap-4">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center flex-shrink-0">🏪</div>
+                <div className="min-w-0">
+                  <p className="font-bold flex items-center gap-2 dark:text-white text-sm sm:text-base truncate">{auction.seller_name || 'Seller'}{auction.seller_verified && <CheckCircle className="w-4 h-4 text-emerald-500"/>}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{auction.location || 'Japan'}</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-        <div className="mt-8 bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-bold mb-4 dark:text-white">Specifications</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm"><div><p className="text-slate-500 dark:text-slate-400">Model</p><p className="font-medium dark:text-white">{auction?.title}</p></div><div><p className="text-slate-500 dark:text-slate-400">Grade</p><p className="font-medium dark:text-white">{auction?.grade || 'A'}</p></div><div><p className="text-slate-500 dark:text-slate-400">Condition</p><p className="font-medium dark:text-white">{auction?.condition || 'Good'}</p></div><div><p className="text-slate-500 dark:text-slate-400">Location</p><p className="font-medium dark:text-white">{auction?.location || 'Japan'}</p></div></div>
+        <div className="mt-6 sm:mt-8 bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-bold mb-3 sm:mb-4 dark:text-white">Specifications</h3>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 text-sm">
+            <div><p className="text-slate-500 dark:text-slate-400">Model</p><p className="font-medium dark:text-white truncate">{auction?.title}</p></div>
+            <div><p className="text-slate-500 dark:text-slate-400">Grade</p><p className="font-medium dark:text-white">{auction?.grade || 'A'}</p></div>
+            <div><p className="text-slate-500 dark:text-slate-400">Condition</p><p className="font-medium dark:text-white">{auction?.condition || 'Good'}</p></div>
+            <div><p className="text-slate-500 dark:text-slate-400">Location</p><p className="font-medium dark:text-white">{auction?.location || 'Japan'}</p></div>
+          </div>
         </div>
-        <div className="mt-8 bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-          <h3 className="text-lg font-bold mb-4 dark:text-white">Bid History ({auction.bid_count || 0})</h3>
+        <div className="mt-6 sm:mt-8 bg-white dark:bg-slate-800 rounded-xl p-4 sm:p-6 border border-slate-200 dark:border-slate-700">
+          <h3 className="text-lg font-bold mb-3 sm:mb-4 dark:text-white">Bid History ({auction.bid_count || 0})</h3>
           <div className="text-slate-500 dark:text-slate-400 text-center py-4">
             {auction.bid_count > 0 ? 'Loading bids...' : 'No bids yet. Be the first to bid!'}
           </div>
         </div>
-        <div className="mt-8 flex justify-center gap-8 text-slate-600 dark:text-slate-400"><span>📦 Free Shipping</span><span>🛡 Escrow Protected</span><span>✓ Verified Seller</span></div>
+        <div className="mt-6 sm:mt-8 flex flex-wrap justify-center gap-4 sm:gap-8 text-slate-600 dark:text-slate-400 text-sm"><span>📦 Free Shipping</span><span>🛡 Escrow Protected</span><span>✓ Verified Seller</span></div>
         
         {/* Buy Now Modal */}
         {showBuyNowModal && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full">
-              <h3 className="text-xl font-bold dark:text-white mb-4">Confirm Purchase</h3>
-              <p className="text-slate-600 dark:text-slate-300 mb-6">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 sm:p-6 max-w-md w-full">
+              <h3 className="text-lg sm:text-xl font-bold dark:text-white mb-3 sm:mb-4">Confirm Purchase</h3>
+              <p className="text-slate-600 dark:text-slate-300 mb-4 sm:mb-6 text-sm sm:text-base">
                 Are you sure you want to buy this item for <span className="font-bold text-emerald-500">¥{auction?.buy_now_price?.toLocaleString()}</span>?
               </p>
-              <div className="flex gap-4">
+              <div className="flex gap-3 sm:gap-4">
                 <button 
                   onClick={() => setShowBuyNowModal(false)}
-                  className="flex-1 py-3 border border-slate-300 dark:border-slate-600 rounded-lg font-medium dark:text-white"
+                  className="flex-1 py-2 sm:py-3 border border-slate-300 dark:border-slate-600 rounded-lg font-medium dark:text-white text-sm sm:text-base"
                 >
                   Cancel
                 </button>
                 <button 
                   onClick={handleBuyNow}
                   disabled={isProcessingBuyNow}
-                  className="flex-1 py-3 bg-emerald-500 text-white rounded-lg font-bold disabled:opacity-50"
+                  className="flex-1 py-2 sm:py-3 bg-emerald-500 text-white rounded-lg font-bold disabled:opacity-50 text-sm sm:text-base"
                 >
                   {isProcessingBuyNow ? 'Processing...' : 'Yes, Buy Now'}
                 </button>
