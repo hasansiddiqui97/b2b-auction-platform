@@ -226,33 +226,18 @@ export default function AuctionDetail({ params }) {
   // Load auction from Supabase
   useEffect(() => {
     async function fetchAuction() {
-      console.log('Fetching auction, id:', id);
-      console.log('Supabase configured:', isSupabaseConfigured());
-      console.log('Supabase client:', supabase);
-      
       if (!isSupabaseConfigured() || !supabase) {
-        console.error('Supabase not configured');
         setLoading(false);
         return;
       }
       
-      console.log('Making Supabase query...');
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
         .eq('id', id)
         .single();
       
-      console.log('Query result - data:', data, 'error:', error);
-      
-      if (error) {
-        console.error('Auction fetch error:', error);
-        setLoading(false);
-        return;
-      }
-      
-      if (!data) {
-        console.error('No auction data found for id:', id);
+      if (error || !data) {
         setLoading(false);
         return;
       }
@@ -275,14 +260,18 @@ export default function AuctionDetail({ params }) {
       setAuction(transformed);
       setBidAmount((data.current_bid || data.starting_price) + (data.bid_increment || 500));
       
-      // Fetch bid history
-      const { data: bids } = await supabase
-        .from('bids')
-        .select('*, profiles(full_name)')
-        .eq('auction_id', id)
-        .order('created_at', { ascending: false });
-      
-      if (bids) setBidHistory(bids);
+      // Fetch bid history (simplified - no join)
+      try {
+        const { data: bids } = await supabase
+          .from('bids')
+          .select('*')
+          .eq('auction_id', id)
+          .order('created_at', { ascending: false });
+        
+        if (bids) setBidHistory(bids);
+      } catch (e) {
+        console.log('Bid history fetch skipped:', e.message);
+      }
       setLoading(false);
     }
     
