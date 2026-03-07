@@ -17,13 +17,14 @@ function LoadingState() {
   );
 }
 
-function ErrorState({ onRetry }) {
+function ErrorState({ onRetry, error }) {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pt-16 flex items-center justify-center">
       <div className="glass-card p-8 max-w-md text-center">
         <div className="text-6xl mb-4">😵</div>
         <h2 className="text-2xl font-bold text-slate-800 dark:text-white mb-2">Something went wrong</h2>
-        <p className="text-slate-500 dark:text-slate-400 mb-6">Failed to load auction details. Please try again.</p>
+        <p className="text-slate-500 dark:text-slate-400 mb-2">Failed to load auction details.</p>
+        {error && <p className="text-xs text-red-500 mb-4 font-mono">{error}</p>}
         <button onClick={onRetry} className="btn-primary">Try Again</button>
       </div>
     </div>
@@ -222,6 +223,7 @@ export default function AuctionDetail({ params }) {
   const [bidSuccess, setBidSuccess] = useState('');
   const [selectedImage, setSelectedImage] = useState(0);
   const [bidHistory, setBidHistory] = useState([]);
+  const [error, setError] = useState('');
 
   // Load auction from Supabase
   useEffect(() => {
@@ -242,8 +244,16 @@ export default function AuctionDetail({ params }) {
       
       console.log('Got data:', !!data, 'error:', error);
       
-      if (error || !data || data.length === 0) {
-        console.log('No data or error:', error);
+      if (error) {
+        console.log('Error fetching:', error);
+        setError(error.message);
+        setLoading(false);
+        return;
+      }
+      
+      if (!data || data.length === 0) {
+        console.log('No data found for id:', id);
+        setError('Auction not found');
         setLoading(false);
         return;
       }
@@ -308,9 +318,43 @@ export default function AuctionDetail({ params }) {
   }, [auction?.endTime]);
 
   const handleRetry = () => {
-    setLoading(true);
-    // Will re-fetch from Supabase
-    setLoading(false);
+    // Re-fetch auction
+    async function refetch() {
+      if (!isSupabaseConfigured() || !supabase) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('auctions')
+        .select('*')
+        .eq('id', id);
+      
+      if (error || !data || data.length === 0) {
+        setLoading(false);
+        return;
+      }
+      
+      const auctionData = data[0];
+      const transformed = {
+        ...auctionData,
+        currentBid: auctionData.current_bid,
+        startingPrice: auctionData.starting_price,
+        bidIncrement: auctionData.bid_increment,
+        startTime: auctionData.start_time,
+        endTime: auctionData.end_time,
+        buyNowPrice: auctionData.buy_now_price,
+        bidCount: auctionData.bid_count,
+        sellerId: auctionData.seller_id,
+        sellerName: auctionData.seller_name,
+        sellerVerified: auctionData.seller_verified,
+        sellerLocation: auctionData.seller_location,
+      };
+      setAuction(transformed);
+      setBidAmount((auctionData.current_bid || auctionData.starting_price) + (auctionData.bid_increment || 500));
+      setLoading(false);
+    }
+    refetch();
   };
 
   const handlePlaceBid = async () => {
@@ -396,7 +440,7 @@ export default function AuctionDetail({ params }) {
   };
 
   if (loading) return <LoadingState />;
-  if (!auction) return <ErrorState onRetry={handleRetry} />;
+  if (!auction) return <ErrorState onRetry={handleRetry} error={error} />;
 
   return (
     <AuctionContent 
