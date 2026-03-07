@@ -31,7 +31,7 @@ function ErrorState({ onRetry, error }) {
   );
 }
 
-function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched, setIsWatched, onPlaceBid, isPlacingBid, bidError, bidSuccess, bidHistory }) {
+function AuctionContent({ auction, bidAmount, setBidAmount, timeLeft, isWatched, setIsWatched, onPlaceBid, isPlacingBid, bidError, bidSuccess, bidHistory, selectedImage, setSelectedImage }) {
   const minBid = (auction.currentBid || auction.starting_price || 0) + (auction.bid_increment || 500);
   const hasMultipleImages = auction.images && auction.images.length > 1;
   
@@ -454,7 +454,9 @@ export default function AuctionDetail({ params }) {
       isPlacingBid={isPlacingBid}
       bidError={bidError}
       bidSuccess={bidSuccess}
-        bidHistory={bidHistory}
+      bidHistory={bidHistory}
+      selectedImage={selectedImage}
+      setSelectedImage={setSelectedImage}
     />
   );
 }
