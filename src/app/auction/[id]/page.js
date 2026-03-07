@@ -238,33 +238,35 @@ export default function AuctionDetail({ params }) {
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
       
       console.log('Got data:', !!data, 'error:', error);
       
-      if (error || !data) {
+      if (error || !data || data.length === 0) {
+        console.log('No data or error:', error);
         setLoading(false);
         return;
       }
       
+      const auctionData = data[0];
+      
       // Transform snake_case to camelCase
       const transformed = {
-        ...data,
-        currentBid: data.current_bid,
-        startingPrice: data.starting_price,
-        bidIncrement: data.bid_increment,
-        startTime: data.start_time,
-        endTime: data.end_time,
-        buyNowPrice: data.buy_now_price,
-        bidCount: data.bid_count,
-        sellerId: data.seller_id,
-        sellerName: data.seller_name,
-        sellerVerified: data.seller_verified,
-        sellerLocation: data.seller_location,
+        ...auctionData,
+        currentBid: auctionData.current_bid,
+        startingPrice: auctionData.starting_price,
+        bidIncrement: auctionData.bid_increment,
+        startTime: auctionData.start_time,
+        endTime: auctionData.end_time,
+        buyNowPrice: auctionData.buy_now_price,
+        bidCount: auctionData.bid_count,
+        sellerId: auctionData.seller_id,
+        sellerName: auctionData.seller_name,
+        sellerVerified: auctionData.seller_verified,
+        sellerLocation: auctionData.seller_location,
       };
       setAuction(transformed);
-      setBidAmount((data.current_bid || data.starting_price) + (data.bid_increment || 500));
+      setBidAmount((auctionData.current_bid || auctionData.starting_price) + (auctionData.bid_increment || 500));
       
       // Fetch bid history (simplified - no join)
       try {
