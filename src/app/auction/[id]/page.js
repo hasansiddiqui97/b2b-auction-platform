@@ -119,9 +119,7 @@ export default function AuctionDetail() {
 
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"></div></div>;
 
-  if (error || !auction) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-center"><h2 className="text-xl font-bold">{error || 'Auction not found'}</h2><Link href="/auctions" className="text-amber-600 mt-2 block">Back to Auctions</Link></div></div>;
-
-  if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"></div></div>;
+  if (!auction) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-center"><h2 className="text-xl font-bold">Auction not found</h2><Link href="/auctions" className="text-amber-600 mt-2 block">Back to Auctions</Link></div></div>;
 
   return (
     <div className="min-h-screen bg-slate-50">
