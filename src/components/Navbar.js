@@ -11,6 +11,7 @@ export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef(null);
+  const mobileMenuRef = useRef(null);
   const currentRole = 'buyer';
 
   // Close dropdown when clicking outside
@@ -18,6 +19,9 @@ export default function Navbar() {
     function handleClickOutside(event) {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
         setUserMenuOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target) && !event.target.closest('button')) {
+        setMobileMenuOpen(false);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
@@ -100,12 +104,15 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200 dark:border-slate-700 p-4 space-y-2">
-            <Link href="/auctions" className="block py-2">🔍 Auctions</Link>
-            <Link href="/dashboard" className="block py-2">👤 My Dashboard</Link>
-            <Link href="/buyer/settings" className="block py-2">⚙️ Settings</Link>
-            <button onClick={toggleTheme} className="block py-2 w-full text-left">
+          <div ref={mobileMenuRef} className="md:hidden border-t border-slate-200 dark:border-slate-700 p-4 space-y-2">
+            <Link href="/auctions" onClick={() => setMobileMenuOpen(false)} className="block py-2">🔍 Auctions</Link>
+            <Link href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="block py-2">👤 My Dashboard</Link>
+            <Link href="/buyer/settings" onClick={() => setMobileMenuOpen(false)} className="block py-2">⚙️ Settings</Link>
+            <button onClick={() => { toggleTheme(); setMobileMenuOpen(false); }} className="block py-2 w-full text-left">
               {theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode'}
+            </button>
+            <button onClick={() => { localStorage.removeItem('hw_user_id'); localStorage.removeItem('hw_user_info'); window.location.href = '/login'; setMobileMenuOpen(false); }} className="block py-2 w-full text-left text-red-600">
+              🚪 Sign Out
             </button>
           </div>
         )}
