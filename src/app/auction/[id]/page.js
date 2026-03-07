@@ -133,13 +133,16 @@ export default function AuctionDetail() {
     setError('');
     
     try {
-      // Create order
+      // Generate order number
+      const orderNumber = 'ORD-' + Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+      
       const { data: order, error: orderError } = await supabase
         .from('orders')
         .insert({
           buyer_id: user.id,
           seller_id: auction.seller_id,
           auction_id: auction.id,
+          order_number: orderNumber,
           total_amount: auction.buy_now_price,
           status: 'completed',
           created_at: new Date().toISOString()
