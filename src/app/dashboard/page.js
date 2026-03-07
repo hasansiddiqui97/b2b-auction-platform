@@ -15,18 +15,18 @@ export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('activity');
+  const [stats, setStats] = useState({
+    watchlistCount: 0,
+    activeBidsCount: 0,
+    purchasesCount: 0,
+    activeListingsCount: 0,
+    soldCount: 0,
+    closedCount: 0
+  });
   const router = useRouter();
 
-  // For demo data
-  const watchlistCount = 3;
-  const activeBidsCount = 2;
-  const purchasesCount = 5;
-  const activeListingsCount = 6;
-  const soldCount = 8;
-  const closedCount = 3;
-
   useEffect(() => {
-    async function fetchUser() {
+    async function fetchData() {
       const userId = localStorage.getItem('hw_user_id');
       
       if (!userId) {
@@ -40,6 +40,7 @@ export default function Dashboard() {
         return;
       }
       
+      // Fetch user profile
       const { data } = await supabase
         .from('profiles')
         .select('*')
@@ -47,10 +48,63 @@ export default function Dashboard() {
         .single();
       
       if (data) setUser(data);
+      
+      // Fetch stats
+      try {
+        // Purchases count - orders where user is buyer
+        const { count: purchasesCount } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('buyer_id', userId);
+
+        // Active bids count - bids by user on active auctions
+        const { data: userBids } = await supabase
+          .from('bids')
+          .select('auction_id')
+          .eq('bidder_id', userId);
+        
+        const uniqueAuctions = new Set(userBids?.map(b => b.auction_id) || []);
+        const { data: activeAuctions } = await supabase
+          .from('auctions')
+          .select('id')
+          .eq('status', 'active')
+          .in('id', Array.from(uniqueAuctions));
+        
+        // Watchlist count
+        const { count: watchlistCount } = await supabase
+          .from('watchlist')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId);
+
+        // Seller stats
+        const { count: activeListingsCount } = await supabase
+          .from('auctions')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', userId)
+          .eq('status', 'active');
+
+        const { count: soldCount } = await supabase
+          .from('auctions')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', userId)
+          .eq('status', 'sold');
+
+        setStats({
+          watchlistCount: watchlistCount || 0,
+          activeBidsCount: activeAuctions?.length || 0,
+          purchasesCount: purchasesCount || 0,
+          activeListingsCount: activeListingsCount || 0,
+          soldCount: soldCount || 0,
+          closedCount: 0
+        });
+      } catch (e) {
+        console.error('Error fetching stats:', e);
+      }
+      
       setLoading(false);
     }
     
-    fetchUser();
+    fetchData();
   }, [router]);
 
   const handleLogout = () => {
@@ -168,9 +222,9 @@ export default function Dashboard() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mb-3">🛒 Buying Activity</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatCard icon={Eye} label="Watchlist" value={watchlistCount} color="blue" link="/buyer/watchlist" />
-                  <StatCard icon={Gavel} label="Active Bids" value={activeBidsCount} color="amber" link="/buyer/bids" />
-                  <StatCard icon={ShoppingCart} label="Purchases" value={purchasesCount} color="purple" link="/purchase/orders" />
+                  <StatCard icon={Eye} label="Watchlist" value={stats.watchlistCount} color="blue" link="/buyer/watchlist" />
+                  <StatCard icon={Gavel} label="Active Bids" value={stats.activeBidsCount} color="amber" link="/buyer/bids" />
+                  <StatCard icon={ShoppingCart} label="Purchases" value={stats.purchasesCount} color="purple" link="/purchase/orders" />
                 </div>
               </div>
             </div>
@@ -182,8 +236,8 @@ export default function Dashboard() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-800 dark:text-white mb-3">💰 Selling Activity</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <StatCard icon={Package} label="Active Listings" value={activeListingsCount} color="blue" link="/seller/inventory" />
-                  <StatCard icon={TrendingUp} label="Sold Items" value={soldCount} color="emerald" link="/seller/sold" />
+                  <StatCard icon={Package} label="Active Listings" value={stats.activeListingsCount} color="blue" link="/seller/inventory" />
+                  <StatCard icon={TrendingUp} label="Sold Items" value={stats.soldCount} color="emerald" link="/seller/sold" />
                   <StatCard icon={Clock} label="Closed Auctions" value={closedCount} color="slate" link="/seller/closed" />
                 </div>
               </div>
