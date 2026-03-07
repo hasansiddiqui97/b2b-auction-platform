@@ -35,6 +35,42 @@ export default function InventoryPage() {
   const [inventory, setInventory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // Item to delete
+  const [editItem, setEditItem] = useState(null); // Item to edit
+  const [deleting, setDeleting] = useState(false);
+
+  // Delete auction
+  const handleDelete = async (item) => {
+    if (!confirm(`Are you sure you want to delete "${item.title}"?`)) return;
+    
+    setDeleting(true);
+    try {
+      const { error: deleteError } = await supabase
+        .from('auctions')
+        .delete()
+        .eq('id', item.id);
+
+      if (deleteError) throw deleteError;
+
+      // Remove from local state
+      setInventory(inventory.filter(i => i.id !== item.id));
+      setDeleteConfirm(null);
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete: ' + err.message);
+    }
+    setDeleting(false);
+  };
+
+  // Edit auction - navigate to edit page
+  const handleEdit = (item) => {
+    window.location.href = `/seller/edit-listing/${item.id}`;
+  };
+
+  // View auction - navigate to detail page
+  const handleView = (item) => {
+    window.location.href = `/auction/${item.id}`;
+  };
 
   // Fetch user's auctions from Supabase
   useEffect(() => {
@@ -245,10 +281,10 @@ export default function InventoryPage() {
                     <p className="text-xs text-slate-500">Stock: {item.quantity}</p>
                   </div>
                   <div className="flex space-x-1">
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                    <button onClick={() => handleView(item)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
                       <Eye className="w-4 h-4 text-slate-400" />
                     </button>
-                    <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                    <button onClick={() => handleEdit(item)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
                       <Edit className="w-4 h-4 text-slate-400" />
                     </button>
                   </div>
@@ -294,14 +330,14 @@ export default function InventoryPage() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end space-x-1">
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                        <button onClick={() => handleView(item)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
                           <Eye className="w-4 h-4 text-slate-400" />
                         </button>
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
+                        <button onClick={() => handleEdit(item)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
                           <Edit className="w-4 h-4 text-slate-400" />
                         </button>
-                        <button className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg">
-                          <Trash2 className="w-4 h-4 text-slate-400" />
+                        <button onClick={() => handleDelete(item)} disabled={deleting} className="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg">
+                          <Trash2 className="w-4 h-4 text-red-400" />
                         </button>
                       </div>
                     </td>
