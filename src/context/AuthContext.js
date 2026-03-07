@@ -12,25 +12,38 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Check for existing session on mount
     async function checkSession() {
-      // Check localStorage first (works regardless of Supabase config)
-      const savedUserId = localStorage.getItem('hw_user_id');
-      if (savedUserId) {
-        // Fetch user profile
-        const { data } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', savedUserId)
-          .single();
+      try {
+        // Check localStorage first - try to get stored user info
+        const savedUserInfo = localStorage.getItem('hw_user_info');
+        const savedUserId = localStorage.getItem('hw_user_id');
         
-        if (data) {
-          setUser({
-            id: data.id,
-            email: data.email,
-            full_name: data.full_name,
-            role: data.role,
-            is_verified: data.is_verified,
-          });
+        if (savedUserInfo) {
+          // Use stored user info directly
+          const userInfo = JSON.parse(savedUserInfo);
+          setUser(userInfo);
+        } else if (savedUserId) {
+          // Fallback: try to fetch from Supabase
+          const { data } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', savedUserId)
+            .single();
+          
+          if (data) {
+            const userInfo = {
+              id: data.id,
+              email: data.email,
+              full_name: data.full_name,
+              role: data.role,
+              is_verified: data.is_verified,
+            };
+            setUser(userInfo);
+            // Store for future use
+            localStorage.setItem('hw_user_info', JSON.stringify(userInfo));
+          }
         }
+      } catch (err) {
+        console.log('Session check error:', err);
       }
       setLoading(false);
     }
@@ -50,21 +63,25 @@ export function AuthProvider({ children }) {
       throw new Error('No account found with this email');
     }
 
-    // Verify password (simple comparison for demo)
-    if (data.password !== password) {
+    // Verify password (bcrypt compare)
+    const bcrypt = await import('bcryptjs');
+    const isValid = await bcrypt.default.compare(password, data.password);
+    if (!isValid) {
       throw new Error('Incorrect password');
     }
 
-    // Save to localStorage
-    localStorage.setItem('hw_user_id', data.id);
-    
-    setUser({
+    // Save user ID AND info to localStorage
+    const userInfo = {
       id: data.id,
       email: data.email,
       full_name: data.full_name,
       role: data.role,
       is_verified: data.is_verified,
-    });
+    };
+    localStorage.setItem('hw_user_id', data.id);
+    localStorage.setItem('hw_user_info', JSON.stringify(userInfo));
+    
+    setUser(userInfo);
 
     return data;
   };
@@ -84,15 +101,17 @@ export function AuthProvider({ children }) {
 
     if (error) throw error;
 
-    localStorage.setItem('hw_user_id', data.id);
-    
-    setUser({
+    const userInfo = {
       id: data.id,
       email: data.email,
       full_name: data.full_name,
       role: data.role,
       is_verified: data.is_verified,
-    });
+    };
+    localStorage.setItem('hw_user_id', data.id);
+    localStorage.setItem('hw_user_info', JSON.stringify(userInfo));
+    
+    setUser(userInfo);
 
     return data;
   };
@@ -100,6 +119,7 @@ export function AuthProvider({ children }) {
   // Sign out
   const signOut = () => {
     localStorage.removeItem('hw_user_id');
+    localStorage.removeItem('hw_user_info');
     setUser(null);
   };
 

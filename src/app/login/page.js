@@ -42,10 +42,18 @@ export default function Login() {
           return;
         }
 
-        // Save user ID to localStorage
+        // Save user ID AND user info to localStorage
+        const userInfo = {
+          id: data.id,
+          email: data.email,
+          full_name: data.full_name,
+          role: data.role,
+          is_verified: data.is_verified,
+        };
         localStorage.setItem('hw_user_id', data.id);
+        localStorage.setItem('hw_user_info', JSON.stringify(userInfo));
         
-        // Redirect to profile
+        // Redirect to dashboard
         router.push('/dashboard');
       } else {
         // Demo mode
