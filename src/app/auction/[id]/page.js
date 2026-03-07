@@ -17,6 +17,8 @@ export default function AuctionDetail() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isPlacingBid, setIsPlacingBid] = useState(false);
+  const [showBuyNowModal, setShowBuyNowModal] = useState(false);
+  const [isProcessingBuyNow, setIsProcessingBuyNow] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
@@ -117,6 +119,53 @@ export default function AuctionDetail() {
     setIsPlacingBid(false);
   };
 
+  const handleBuyNow = async () => {
+    if (!user) {
+      setError('Please log in to purchase');
+      return;
+    }
+    if (user.id === auction.seller_id) {
+      setError('You cannot buy your own auction');
+      return;
+    }
+    
+    setIsProcessingBuyNow(true);
+    setError('');
+    
+    try {
+      // Create order
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          buyer_id: user.id,
+          seller_id: auction.seller_id,
+          auction_id: auction.id,
+          total_amount: auction.buy_now_price,
+          status: 'completed',
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+      
+      if (orderError) throw orderError;
+      
+      // Update auction status to sold
+      const { error: updateError } = await supabase
+        .from('auctions')
+        .update({ status: 'sold', current_bid: auction.buy_now_price })
+        .eq('id', auction.id);
+      
+      if (updateError) throw updateError;
+      
+      // Redirect to success page
+      window.location.href = `/purchase-success?orderId=${order.id}`;
+    } catch (err) {
+      setError(err.message);
+      setIsProcessingBuyNow(false);
+      setShowBuyNowModal(false);
+    }
+  };
+
   if (loading) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><div className="animate-spin w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"></div></div>;
 
   if (!auction) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><div className="text-center"><h2 className="text-xl font-bold dark:text-white">Auction not found</h2><Link href="/auctions" className="text-amber-600 mt-2 block">Back to Auctions</Link></div></div>;
@@ -164,7 +213,15 @@ export default function AuctionDetail() {
                 <button onClick={handlePlaceBid} disabled={isPlacingBid} className="px-6 py-3 bg-amber-500 text-slate-900 font-bold rounded-lg disabled:opacity-50">{isPlacingBid ? 'Placing...' : 'BID NOW'}</button>
               </div>
               <div className="flex gap-2 mb-4"><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+1000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥1,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+5000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥5,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+10000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥10,000</button></div>
-              <div className="border-t border-white/20 pt-4 text-center">Buy Now: <span className="text-amber-400 font-bold">¥{(auction?.buy_now_price||0).toLocaleString()}</span></div>
+              <div className="border-t border-white/20 pt-4 text-center">
+                <button 
+                  onClick={() => setShowBuyNowModal(true)}
+                  disabled={isProcessingBuyNow || auction?.status === 'sold'}
+                  className="px-6 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-lg disabled:opacity-50"
+                >
+                  {auction?.status === 'sold' ? 'SOLD' : 'Buy Now'} ¥{(auction?.buy_now_price||0).toLocaleString()}
+                </button>
+              </div>
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
               <div className="flex items-center gap-4"><div className="w-12 h-12 bg-slate-200 dark:bg-slate-700 rounded-full flex items-center justify-center">🏪</div><div><p className="font-bold flex items-center gap-2 dark:text-white">{auction.seller_name || 'Seller'}{auction.seller_verified && <CheckCircle className="w-4 h-4 text-emerald-500"/>}</p><p className="text-sm text-slate-500 dark:text-slate-400">{auction.location || 'Japan'}</p></div></div>
@@ -182,6 +239,33 @@ export default function AuctionDetail() {
           </div>
         </div>
         <div className="mt-8 flex justify-center gap-8 text-slate-600 dark:text-slate-400"><span>📦 Free Shipping</span><span>🛡 Escrow Protected</span><span>✓ Verified Seller</span></div>
+        
+        {/* Buy Now Modal */}
+        {showBuyNowModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 max-w-md w-full">
+              <h3 className="text-xl font-bold dark:text-white mb-4">Confirm Purchase</h3>
+              <p className="text-slate-600 dark:text-slate-300 mb-6">
+                Are you sure you want to buy this item for <span className="font-bold text-emerald-500">¥{auction?.buy_now_price?.toLocaleString()}</span>?
+              </p>
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => setShowBuyNowModal(false)}
+                  className="flex-1 py-3 border border-slate-300 dark:border-slate-600 rounded-lg font-medium dark:text-white"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleBuyNow}
+                  disabled={isProcessingBuyNow}
+                  className="flex-1 py-3 bg-emerald-500 text-white rounded-lg font-bold disabled:opacity-50"
+                >
+                  {isProcessingBuyNow ? 'Processing...' : 'Yes, Buy Now'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
