@@ -226,16 +226,22 @@ export default function AuctionDetail({ params }) {
   // Load auction from Supabase
   useEffect(() => {
     async function fetchAuction() {
+      console.log('fetchAuction called, id:', id, 'isSupabaseConfigured:', isSupabaseConfigured());
+      
       if (!isSupabaseConfigured() || !supabase) {
+        console.log('Supabase not configured, returning');
         setLoading(false);
         return;
       }
       
+      console.log('Fetching from Supabase with id:', id);
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
         .eq('id', id)
         .single();
+      
+      console.log('Got data:', !!data, 'error:', error);
       
       if (error || !data) {
         setLoading(false);
