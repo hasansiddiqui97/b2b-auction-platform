@@ -290,6 +290,7 @@ export default function AuctionDetail({ params }) {
       } catch (e) {
         console.log('Bid history fetch skipped:', e.message);
       }
+      console.log('Setting loading to false, auction set:', !!transformed);
       setLoading(false);
     }
     
