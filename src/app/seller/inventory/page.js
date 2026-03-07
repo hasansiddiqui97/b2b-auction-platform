@@ -24,12 +24,10 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
-
-// Current user ID (in production, this would come from auth)
-// For demo: Hasan's user ID
-const CURRENT_USER_ID = '550e8400-e29b-41d4-a716-772795820771';
+import { useAuth } from '@/context/AuthContext';
 
 export default function InventoryPage() {
+  const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [viewMode, setViewMode] = useState('grid');
@@ -41,6 +39,15 @@ export default function InventoryPage() {
   // Fetch user's auctions from Supabase
   useEffect(() => {
     async function fetchInventory() {
+      // Wait for auth to load
+      if (authLoading) return;
+      
+      if (!user) {
+        setError('Please log in to view your inventory');
+        setLoading(false);
+        return;
+      }
+
       if (!isSupabaseConfigured() || !supabase) {
         setError('Supabase not configured');
         setLoading(false);
@@ -51,7 +58,7 @@ export default function InventoryPage() {
         const { data, error: fetchError } = await supabase
           .from('auctions')
           .select('*')
-          .eq('seller_id', CURRENT_USER_ID)
+          .eq('seller_id', user.id)
           .order('created_at', { ascending: false });
 
         if (fetchError) {
@@ -86,7 +93,7 @@ export default function InventoryPage() {
     }
 
     fetchInventory();
-  }, []);
+  }, [user, authLoading]);
 
   const categories = ['All', 'Smartphones', 'Laptops', 'Tablets', 'Audio', 'Cameras', 'Wearables', 'Gaming'];
   const grades = ['New', 'A+', 'A', 'B', 'C'];
