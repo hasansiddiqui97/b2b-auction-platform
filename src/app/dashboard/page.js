@@ -170,7 +170,7 @@ export default function Dashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <StatCard icon={Eye} label="Watchlist" value={watchlistCount} color="blue" link="/buyer/watchlist" />
                   <StatCard icon={Gavel} label="Active Bids" value={activeBidsCount} color="amber" link="/buyer/bids" />
-                  <StatCard icon={ShoppingCart} label="Purchases" value={purchasesCount} color="purple" link="/buyer/orders" />
+                  <StatCard icon={ShoppingCart} label="Purchases" value={purchasesCount} color="purple" link="/purchase/orders" />
                 </div>
               </div>
             </div>
