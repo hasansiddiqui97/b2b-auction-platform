@@ -233,8 +233,23 @@ export default function AuctionDetail({ params }) {
         .single();
       
       if (data) {
-        setAuction(data);
-        setBidAmount((data.currentBid || data.starting_price) + (data.bid_increment || 500));
+        // Transform snake_case to camelCase
+        const transformed = {
+          ...data,
+          currentBid: data.current_bid,
+          startingPrice: data.starting_price,
+          bidIncrement: data.bid_increment,
+          startTime: data.start_time,
+          endTime: data.end_time,
+          buyNowPrice: data.buy_now_price,
+          bidCount: data.bid_count,
+          sellerId: data.seller_id,
+          sellerName: data.seller_name,
+          sellerVerified: data.seller_verified,
+          sellerLocation: data.seller_location,
+        };
+        setAuction(transformed);
+        setBidAmount((data.current_bid || data.starting_price) + (data.bid_increment || 500));
         
         // Fetch bid history
         const { data: bids } = await supabase
