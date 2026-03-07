@@ -80,6 +80,10 @@ export default function AuctionDetail() {
   }, [auctionId]);
 
   const handlePlaceBid = async () => {
+    if (auction.status === 'sold') {
+      setError('This item has been sold and no longer accepts bids');
+      return;
+    }
     if (!user) {
       setError('Please log in to place a bid');
       return;
@@ -215,8 +219,12 @@ export default function AuctionDetail() {
                   <p className="text-slate-400 text-sm">{auction?.bid_count||0} bids</p>
                 </div>
                 <div className="text-left sm:text-right">
-                  <p className="text-slate-400 text-xs sm:text-sm">ENDS IN</p>
-                  <p className="text-xl sm:text-2xl font-bold text-amber-400">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m</p>
+                  <p className="text-slate-400 text-xs sm:text-sm">{auction.status === 'sold' ? 'STATUS' : 'ENDS IN'}</p>
+                  {auction.status === 'sold' ? (
+                    <p className="text-xl sm:text-2xl font-bold text-red-400">SOLD</p>
+                  ) : (
+                    <p className="text-xl sm:text-2xl font-bold text-amber-400">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m</p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-col gap-2 mb-3">
