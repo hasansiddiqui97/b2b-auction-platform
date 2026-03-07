@@ -5,14 +5,18 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { ChevronLeft, Star, CheckCircle } from 'lucide-react';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { useAuth } from '@/context/AuthContext';
 
 export default function AuctionDetail() {
   const params = useParams();
   const auctionId = params?.id;
+  const { user } = useAuth();
   const [auction, setAuction] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bidAmount, setBidAmount] = useState('');
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [isPlacingBid, setIsPlacingBid] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
@@ -73,6 +77,46 @@ export default function AuctionDetail() {
     fetchAuction();
   }, [auctionId]);
 
+  const handlePlaceBid = async () => {
+    if (!user) {
+      setError('Please log in to place a bid');
+      return;
+    }
+    if (user.id === auction.seller_id) {
+      setError('You cannot bid on your own auction');
+      return;
+    }
+    const bidValue = parseInt(bidAmount);
+    const minBid = (auction.current_bid || auction.starting_price) + (auction.bid_increment || 1000);
+    if (bidValue < minBid) {
+      setError(`Bid must be at least ¥${minBid.toLocaleString()}`);
+      return;
+    }
+    setIsPlacingBid(true);
+    setError('');
+    try {
+      // Insert bid
+      const { error: bidError } = await supabase.from('bids').insert({
+        auction_id: auction.id,
+        bidder_id: user.id,
+        amount: bidValue,
+        created_at: new Date().toISOString()
+      });
+      if (bidError) throw bidError;
+      // Update auction
+      const { error: updateError } = await supabase.from('auctions').update({
+        current_bid: bidValue,
+        bid_count: (auction.bid_count || 0) + 1
+      }).eq('id', auction.id);
+      if (updateError) throw updateError;
+      setAuction({ ...auction, current_bid: bidValue, bid_count: (auction.bid_count || 0) + 1 });
+      setSuccess('Bid placed successfully!');
+    } catch (err) {
+      setError(err.message);
+    }
+    setIsPlacingBid(false);
+  };
+
   if (loading) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full"></div></div>;
 
   if (error || !auction) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="text-center"><h2 className="text-xl font-bold">{error || 'Auction not found'}</h2><Link href="/auctions" className="text-amber-600 mt-2 block">Back to Auctions</Link></div></div>;
@@ -115,7 +159,12 @@ export default function AuctionDetail() {
             <div className="flex gap-4 text-slate-600 mb-6"><span>📦 {auction.bid_count || 0} bids</span><span>👁 {auction.watch_count || 0} watching</span></div>
             <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white mb-6">
               <div className="flex justify-between mb-4"><div><p className="text-amber-400 text-sm">CURRENT BID</p><p className="text-5xl font-bold">¥{(auction?.current_bid||auction?.starting_price||0).toLocaleString()}</p><p className="text-slate-400">{auction?.bid_count||0} bids</p></div><div className="text-right"><p className="text-slate-400 text-sm">ENDS IN</p><p className="text-2xl font-bold text-amber-400">{timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s</p></div></div>
-              <div className="flex gap-2 mb-3"><input type="number" value={bidAmount} onChange={e=>setBidAmount(e.target.value)} className="flex-1 px-4 py-3 rounded-lg text-slate-900"/><button className="px-6 py-3 bg-amber-500 text-slate-900 font-bold rounded-lg">BID NOW</button></div>
+              <div className="flex gap-2 mb-3">
+                {error && <p className="w-full text-red-400 text-sm">{error}</p>}
+                {success && <p className="w-full text-emerald-400 text-sm">{success}</p>}
+                <input type="number" value={bidAmount} onChange={e=>setBidAmount(e.target.value)} className="flex-1 px-4 py-3 rounded-lg text-slate-900"/>
+                <button onClick={handlePlaceBid} disabled={isPlacingBid} className="px-6 py-3 bg-amber-500 text-slate-900 font-bold rounded-lg disabled:opacity-50">{isPlacingBid ? 'Placing...' : 'BID NOW'}</button>
+              </div>
               <div className="flex gap-2 mb-4"><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+1000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥1,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+5000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥5,000</button><button onClick={()=>setBidAmount((auction?.current_bid||auction?.starting_price||0)+10000)} className="flex-1 py-2 bg-white/10 rounded-lg">+¥10,000</button></div>
               <div className="border-t border-white/20 pt-4 text-center">Buy Now: <span className="text-amber-400 font-bold">¥{(auction?.buy_now_price||0).toLocaleString()}</span></div>
             </div>
