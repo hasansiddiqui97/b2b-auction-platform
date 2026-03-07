@@ -226,48 +226,63 @@ export default function AuctionDetail({ params }) {
   // Load auction from Supabase
   useEffect(() => {
     async function fetchAuction() {
+      console.log('Fetching auction, id:', id);
+      console.log('Supabase configured:', isSupabaseConfigured());
+      console.log('Supabase client:', supabase);
+      
       if (!isSupabaseConfigured() || !supabase) {
         console.error('Supabase not configured');
         setLoading(false);
         return;
       }
       
+      console.log('Making Supabase query...');
       const { data, error } = await supabase
         .from('auctions')
         .select('*')
         .eq('id', id)
         .single();
       
-      if (data) {
-        // Transform snake_case to camelCase
-        const transformed = {
-          ...data,
-          currentBid: data.current_bid,
-          startingPrice: data.starting_price,
-          bidIncrement: data.bid_increment,
-          startTime: data.start_time,
-          endTime: data.end_time,
-          buyNowPrice: data.buy_now_price,
-          bidCount: data.bid_count,
-          sellerId: data.seller_id,
-          sellerName: data.seller_name,
-          sellerVerified: data.seller_verified,
-          sellerLocation: data.seller_location,
-        };
-        setAuction(transformed);
-        setBidAmount((data.current_bid || data.starting_price) + (data.bid_increment || 500));
-        
-        // Fetch bid history
-        const { data: bids } = await supabase
-          .from('bids')
-          .select('*, profiles(full_name)')
-          .eq('auction_id', id)
-          .order('created_at', { ascending: false });
-        
-        if (bids) setBidHistory(bids);
-      } else if (error) {
-        console.error('Auction error:', error);
+      console.log('Query result - data:', data, 'error:', error);
+      
+      if (error) {
+        console.error('Auction fetch error:', error);
+        setLoading(false);
+        return;
       }
+      
+      if (!data) {
+        console.error('No auction data found for id:', id);
+        setLoading(false);
+        return;
+      }
+      
+      // Transform snake_case to camelCase
+      const transformed = {
+        ...data,
+        currentBid: data.current_bid,
+        startingPrice: data.starting_price,
+        bidIncrement: data.bid_increment,
+        startTime: data.start_time,
+        endTime: data.end_time,
+        buyNowPrice: data.buy_now_price,
+        bidCount: data.bid_count,
+        sellerId: data.seller_id,
+        sellerName: data.seller_name,
+        sellerVerified: data.seller_verified,
+        sellerLocation: data.seller_location,
+      };
+      setAuction(transformed);
+      setBidAmount((data.current_bid || data.starting_price) + (data.bid_increment || 500));
+      
+      // Fetch bid history
+      const { data: bids } = await supabase
+        .from('bids')
+        .select('*, profiles(full_name)')
+        .eq('auction_id', id)
+        .order('created_at', { ascending: false });
+      
+      if (bids) setBidHistory(bids);
       setLoading(false);
     }
     
