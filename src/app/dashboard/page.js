@@ -9,14 +9,9 @@ import {
   ShoppingCart, 
   Package, 
   TrendingUp, 
-  Plus,
-  Menu,
-  Bell,
-  Search,
-  X
+  Plus
 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
-import { supabase, isSupabaseConfigured, getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseClient } from '@/lib/supabase';
 
 function StatCard({ icon: Icon, label, value, color = 'blue', link }) {
   const colorClasses = {
@@ -46,14 +41,12 @@ function StatCard({ icon: Icon, label, value, color = 'blue', link }) {
 export default function Dashboard() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('activity');
   const [stats, setStats] = useState({
     watchlistCount: 0,
     activeBidsCount: 0,
     purchasesCount: 0,
     activeListingsCount: 0,
-    soldCount: 0,
-    closedCount: 0
+    soldCount: 0
   });
   const router = useRouter();
 
@@ -83,13 +76,11 @@ export default function Dashboard() {
       
       // Fetch stats
       try {
-        // Purchases count
         const { count: purchasesCount } = await supabase
           .from('orders')
           .select('*', { count: 'exact', head: true })
           .eq('buyer_id', userId);
 
-        // Active bids count
         const { data: userBids } = await supabase
           .from('bids')
           .select('auction_id')
@@ -102,13 +93,11 @@ export default function Dashboard() {
           .eq('status', 'active')
           .in('id', Array.from(uniqueAuctions));
         
-        // Watchlist count
         const { count: watchlistCount } = await supabase
           .from('watchlist')
           .select('*', { count: 'exact', head: true })
           .eq('user_id', userId);
 
-        // Seller stats
         const { count: activeListingsCount } = await supabase
           .from('auctions')
           .select('*', { count: 'exact', head: true })
@@ -126,8 +115,7 @@ export default function Dashboard() {
           activeBidsCount: activeAuctions?.length || 0,
           purchasesCount: purchasesCount || 0,
           activeListingsCount: activeListingsCount || 0,
-          soldCount: soldCount || 0,
-          closedCount: 0
+          soldCount: soldCount || 0
         });
       } catch (e) {
         console.error('Error fetching stats:', e);
@@ -158,8 +146,8 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
           <StatCard icon={Eye} label="Watchlist" value={stats.watchlistCount} color="blue" />
           <StatCard icon={Gavel} label="Active Bids" value={stats.activeBidsCount} color="amber" />
-          <StatCard icon={ShoppingCart} label="Purchases" value={stats.purchasesCount} color="purple" />
-          <StatCard icon={Package} label="Active Listings" value={stats.activeListingsCount} color="blue" />
+          <StatCard icon={ShoppingCart} label="Purchases" value={stats.purchasesCount} color="purple" link="/purchase/orders" />
+          <StatCard icon={Package} label="Active Listings" value={stats.activeListingsCount} color="blue" link="/seller/inventory" />
           <StatCard icon={TrendingUp} label="Sold Items" value={stats.soldCount} color="emerald" />
           <StatCard icon={Plus} label="Create Listing" value="+" color="amber" link="/seller/create-listing" />
         </div>
@@ -172,9 +160,6 @@ export default function Dashboard() {
             </Link>
             <Link href="/seller/create-listing" className="px-4 py-2 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600">
               Sell an Item
-            </Link>
-            <Link href="/buyer/settings" className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-white rounded-lg font-medium hover:bg-slate-300 dark:hover:bg-slate-600">
-              Settings
             </Link>
           </div>
         </div>
@@ -192,11 +177,6 @@ export default function Dashboard() {
                 <p className="text-sm text-slate-500 dark:text-slate-400">Manage your listings and view analytics</p>
               </Link>
             </div>
-          </div>
-
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Recent Activity</h3>
-            <p className="text-slate-500 dark:text-slate-400 text-center py-8">No recent activity</p>
           </div>
         </div>
       </div>
